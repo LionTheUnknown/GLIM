@@ -3,16 +3,33 @@ const { poolPromise } = require('../db');
 
 // GET POST REACTION
 exports.getPostReaction = async (req, res) => {
-    const postId = req.params?.postId;
-    const userId = req.user?.user_id; 
+    const postIdParam = req.params?.postId;
+    const userId = req.user?.user_id;
 
-    if (!postId || !userId) {
+    if (!postIdParam || !userId) {
         return res.status(400).json({ error: "Missing required parameters (Post ID or User ID)." });
     }
-    
+
+    const postId = parseInt(postIdParam, 10);
+    if (Number.isNaN(postId) || postId <= 0) {
+        return res.status(400).json({ error: "Invalid Post ID." });
+    }
+
     try {
         const pool = await poolPromise;
-        
+
+        const postCheck = await pool.request()
+            .input('PostId', sql.Int, postId)
+            .query(`
+                SELECT 1
+                FROM posts
+                WHERE post_id = @PostId;
+            `);
+
+        if (postCheck.recordset.length === 0) {
+            return res.status(404).json({ error: 'Post not found.' });
+        }
+
         const result = await pool.request()
             .input('PostId', sql.Int, postId)
             .input('UserId', sql.Int, userId)
@@ -21,7 +38,7 @@ exports.getPostReaction = async (req, res) => {
                 FROM reactions 
                 WHERE post_id = @PostId 
                 AND user_id = @UserId 
-                AND comment_id IS NULL; -- Ensures we only check post reactions
+                AND comment_id IS NULL;
             `);
 
         const userReactionType = result.recordset[0]?.reaction_type || null;
@@ -40,6 +57,10 @@ exports.createPostReaction = async (req, res) => {
     const userId = req.user.user_id;
     const reactionType = req.body.reaction_type;
 
+    if (!postId || !userId) {
+        return res.status(400).json({ error: "Missing Post ID or User ID." });
+    }
+
     if (!reactionType || (reactionType !== 'like' && reactionType !== 'dislike')) {
         return res.status(400).json({ error: "Invalid reaction type. Must be 'like' or 'dislike'." });
     }
@@ -47,14 +68,28 @@ exports.createPostReaction = async (req, res) => {
     try {
         const pool = await poolPromise;
 
+        const postCheck = await pool.request()
+            .input('PostId', sql.Int, postId)
+            .query(`
+                SELECT 1
+                FROM posts
+                WHERE post_id = @PostId;
+            `);
+
+        if (postCheck.recordset.length === 0) {
+            return res.status(404).json({ error: 'Post not found.' });
+        }
+
         const checkResult = await pool.request()
             .input('UserId', sql.Int, userId)
             .input('PostId', sql.Int, postId)
+            .input('ReactionType', sql.VarChar, reactionType)
             .query(`
                 SELECT 1
                 FROM reactions
                 WHERE user_id = @UserId
-                AND comment_id = @CommentId
+                AND post_id = @PostId
+                AND comment_id IS NULL
                 AND reaction_type = @ReactionType;
             `);
         
@@ -121,66 +156,75 @@ exports.updatePostReaction = async (req, res) => {
 };
 
 // DELETE POST REACTION
-exports.deletePost = async (req, res) => {
-    const postId = req.params?.postId;
-    const authorId = req.user.user_id;
-
-    if (!postId) {
-        return res.status(400).json({ error: "Post ID is required." });
-    }
+exports.deletePostReaction = async (req, res) => {
+    const { postId } = req.params;
+    const userId = req.user.user_id;
 
     try {
         const pool = await poolPromise;
-        // NEED TO DELETE SINCE IT HAS FK WITH REACTIONS
-        await pool.request()
+
+        const result = await pool.request()
+            .input('UserId', sql.Int, userId)
             .input('PostId', sql.Int, postId)
             .query(`
-                DELETE FROM reactions
-                WHERE post_id = @PostId 
+                DELETE FROM reactions 
+                WHERE user_id = @UserId 
+                AND post_id = @PostId 
                 AND comment_id IS NULL;
             `);
-        // THIS ACTUALLY DELETES THE POST NOW FR
-        const result = await pool.request()
-            .input('PostId', sql.Int, postId)
-            .input('AuthorId', sql.Int, authorId)
-            .query(`
-                DELETE FROM posts
-                WHERE post_id = @PostId 
-                AND author_id = @AuthorId;
-            `);
-        
-        const rowsAffected = result.rowsAffected[0];
-        
-        if (rowsAffected === 0) {
-            return res.status(403).json({ message: 'Forbidden: Post not found or you are not the author.' });
-        }
 
-        res.status(200).json({ message: 'Post and all associated data deleted successfully.' });
+        if (result.rowsAffected[0] === 0) {
+            return res.status(404).json({ message: 'Reaction not found for deletion.' });
+        }
+        
+        res.status(200).json({ 
+            message: 'Reaction deleted successfully.'
+        });
 
     } catch (err) {
-        console.error('Error deleting post:', err.message);
-        res.status(500).json({ error: 'Failed to delete post.', details: err.message });
+        console.error('Error deleting post reaction:', err.message);
+        res.status(500).json({ error: 'Failed to delete post reaction.', details: err.message });
     }
 };
 
 // GET POST REACTION COUNTS
 exports.getPostReactionCounts = async (req, res) => {
-    const postId = req.params?.postId; 
+    const postIdParam = req.params?.postId; 
     
-    if (!postId) {
+    if (!postIdParam) {
         return res.status(400).json({ error: "Missing required post ID parameter." });
+    }
+
+    const postId = parseInt(postIdParam, 10);
+    if (Number.isNaN(postId) || postId <= 0) {
+        return res.status(400).json({ error: "Invalid Post ID." });
     }
     
     try {
         const pool = await poolPromise;
+
+        const postCheck = await pool.request()
+            .input('PostId', sql.Int, postId)
+            .query(`
+                SELECT 1
+                FROM posts
+                WHERE post_id = @PostId; 
+            `);
+
+        if (postCheck.recordset.length === 0) {
+            return res.status(404).json({ error: 'Post not found.' });
+        }
+
         const result = await pool.request()
             .input('PostId', sql.Int, postId)
-            .query(`SELECT 
-            SUM(CASE WHEN reaction_type = 'like' THEN 1 ELSE 0 END) AS like_count,
-            SUM(CASE WHEN reaction_type = 'dislike' THEN 1 ELSE 0 END) AS dislike_count
-            FROM reactions
-            WHERE post_id = @PostId AND comment_id IS NULL;`);
-            
+            .query(`
+                SELECT 
+                    SUM(CASE WHEN reaction_type = 'like' THEN 1 ELSE 0 END) AS like_count,
+                    SUM(CASE WHEN reaction_type = 'dislike' THEN 1 ELSE 0 END) AS dislike_count
+                FROM reactions
+                WHERE post_id = @PostId AND comment_id IS NULL;
+            `);
+        
         const record = result.recordset[0] || {};
         const counts = {
             like_count: parseInt(record.like_count) || 0,

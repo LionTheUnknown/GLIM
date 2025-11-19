@@ -1,5 +1,8 @@
 const { poolPromise, sql } = require('../db');
 
+// make a method for checking if post id is valid
+
+
 /*
 // GET ALL COMMENTS
 exports.getAllComments = async (req, res) => {
@@ -36,27 +39,66 @@ exports.getAllComments = async (req, res) => {
 // CREATE COMMENT
 exports.createComment = async (req, res) => {
     const authorId = req.user.user_id;
-    const postId = req.params.postId;
+    const postIdParam = req.params.postId;
     const { content_text, parent_comment_id } = req.body;
 
-    if(!content_text || content_text.trim().length === 0){
+    if (!content_text || content_text.trim().length === 0) {
         return res.status(400).json({ error: 'Something needs to be written for the comment to be made' });
+    }
+
+    const postId = parseInt(postIdParam, 10);
+    if (isNaN(postId)) {
+        return res.status(400).json({ error: 'Invalid postId parameter.' });
+    }
+
+    const parentId = parent_comment_id == null ? null : parseInt(parent_comment_id, 10);
+    if (parent_comment_id != null && isNaN(parentId)) {
+        return res.status(400).json({ error: 'Invalid parent_comment_id.' });
     }
 
     try {
         const pool = await poolPromise;
-        const request = pool.request()
-        .input('postId', sql.Int, postId)
-        .input('authorId', sql.Int, authorId) 
-        .input('contentText', sql.NVarChar(4000), content_text)
-        .input('parentCommentId', sql.Int, parent_comment_id || null);
 
-        await request.query(`
-            INSERT INTO comments (post_id, author_id, content_text, parent_comment_id) 
-            VALUES (@postId, @authorId, @contentText, @parentCommentId)
-        `);
+        const postCheck = await pool.request()
+            .input('postId', sql.Int, postId)
+            .query('SELECT post_id FROM posts WHERE post_id = @postId;');
 
-        res.status(201).json({ message: 'Comment created successfully.' });
+        if (postCheck.recordset.length === 0) {
+            return res.status(404).json({ error: 'Post not found.' });
+        }
+
+        if (parentId != null) {
+            const parentCheck = await pool.request()
+                .input('parentId', sql.Int, parentId)
+                .query('SELECT comment_id, post_id FROM comments WHERE comment_id = @parentId;');
+
+            if (parentCheck.recordset.length === 0) {
+                return res.status(400).json({ error: 'Parent comment not found.' });
+            }
+
+            const parentComment = parentCheck.recordset[0];
+            if (parentComment.post_id !== postId) {
+                return res.status(400).json({ error: 'Parent comment does not belong to the specified post.' });
+            }
+        }
+
+        const insertResult = await pool.request()
+            .input('postId', sql.Int, postId)
+            .input('authorId', sql.Int, authorId)
+            .input('contentText', sql.NVarChar(4000), content_text)
+            .input('parentCommentId', sql.Int, parentId)
+            .query(`
+                INSERT INTO comments (post_id, author_id, content_text, parent_comment_id)
+                OUTPUT INSERTED.comment_id, INSERTED.created_at
+                VALUES (@postId, @authorId, @contentText, @parentCommentId);
+            `);
+
+        const inserted = insertResult.recordset[0];
+        res.status(201).json({
+            message: 'Comment created successfully.',
+            comment_id: inserted.comment_id,
+            created_at: inserted.created_at
+        });
 
     } catch (err) {
         console.error('Error creating comment:', err.message);
@@ -176,12 +218,33 @@ exports.deleteComment = async (req, res) => {
     }
 };
 
-
 exports.getCommentsByPost = async (req, res) => {
-    const postId = req.params.postId;
+    const postIdParam = req.params?.postId;
+
+    if (!postIdParam) {
+        return res.status(400).json({ error: "Missing required post ID parameter." });
+    }
+
+    const postId = parseInt(postIdParam, 10);
+    if (Number.isNaN(postId) || postId <= 0) {
+        return res.status(400).json({ error: "Invalid Post ID." });
+    }
 
     try {
         const pool = await poolPromise;
+
+        const postCheck = await pool.request()
+            .input('PostId', sql.Int, postId)
+            .query(`
+                SELECT 1
+                FROM posts
+                WHERE id = @PostId; 
+            `);
+
+        if (postCheck.recordset.length === 0) {
+            return res.status(404).json({ error: 'Post not found.' });
+        }
+
         const resultSet = await pool.request()
             .input('postId', sql.Int, postId)
             .query(`

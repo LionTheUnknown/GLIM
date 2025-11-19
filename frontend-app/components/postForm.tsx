@@ -2,9 +2,7 @@
 
 import { useState, ChangeEvent, FormEvent, ReactElement } from 'react'
 import axios from 'axios'
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
-const getToken = () => localStorage.getItem('token')
+import api from '@/utils/api'
 
 interface PostFormProps {
     onPostCreated: () => void
@@ -28,46 +26,37 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
         e.preventDefault()
         setError(null)
         setSuccessMessage(null)
-        
-        if (!formData.contentText.trim()) {
-             return setError('Please type out the full content of the post.')
-        }
 
-        const token = getToken()
-        if (!token) {
-            return setError('You must be logged in to create a post.')
+        if (!formData.contentText.trim()) {
+            return setError('Please type out the full content of the post.')
         }
 
         try {
-            const endpoint = `${API_BASE_URL}/posts/createPost` 
-            
+            const endpoint = '/posts/createPost'
+
             const payload = {
-                content_text: formData.contentText, 
-                category_id: formData.categoryId || null, 
-                media_url: formData.mediaUrl || null 
+                content_text: formData.contentText,
+                category_id: formData.categoryId || null,
+                media_url: formData.mediaUrl || null
             }
 
-            await axios.post(endpoint, payload, {
-                headers: {
-                    'Authorization': `Bearer ${token}` 
-                }
-            })
+            await api.post(endpoint, payload)
 
             setSuccessMessage('Post created successfully!')
-            
-            setFormData({ contentText: '', categoryId: '', mediaUrl: '' })
-            
-            onPostCreated() 
 
-        } catch (err: unknown) { 
+            setFormData({ contentText: '', categoryId: '', mediaUrl: '' })
+
+            onPostCreated()
+
+        } catch (err: unknown) {
             let errorMessage = 'Post creation failed due to an unknown error.'
-            
+
             if (axios.isAxiosError(err) && err.response) {
                 errorMessage = err.response.data.details || err.response.data.error || `Server responded with status ${err.response.status}.`
             } else if (err instanceof Error) {
                 errorMessage = err.message
             }
-            
+
             setError(errorMessage)
         }
     }
@@ -78,52 +67,52 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="text-white">
                     <label htmlFor="contentText" className="block text-sm font-medium mb-1">Content Text (required):</label>
-                    <textarea 
+                    <textarea
                         id="contentText"
-                        name="contentText" 
-                        value={formData.contentText} 
-                        onChange={handleChange} 
-                        required 
+                        name="contentText"
+                        value={formData.contentText}
+                        onChange={handleChange}
+                        required
                         rows={4}
                         className="w-full p-2 bg-neutral-800 border border-stone-700 rounded-md focus:border-indigo-500 text-white"
                         placeholder="What's on your mind? (Use Enter for new lines)"
                     />
                 </div>
-                
+
                 <div className="text-white">
                     <label htmlFor="categoryId" className="block text-sm font-medium mb-1">Category ID (Optional):</label>
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         id="categoryId"
-                        name="categoryId" 
-                        value={formData.categoryId} 
-                        onChange={handleChange} 
+                        name="categoryId"
+                        value={formData.categoryId}
+                        onChange={handleChange}
                         className="w-full p-2 bg-neutral-800 border border-stone-700 rounded-md focus:border-indigo-500 text-white"
                         placeholder="e.g., 1 or leave blank"
                     />
                 </div>
 
-                 <div className="text-white">
+                <div className="text-white">
                     <label htmlFor="mediaUrl" className="block text-sm font-medium mb-1">Media URL (Optional):</label>
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         id="mediaUrl"
-                        name="mediaUrl" 
-                        value={formData.mediaUrl} 
-                        onChange={handleChange} 
+                        name="mediaUrl"
+                        value={formData.mediaUrl}
+                        onChange={handleChange}
                         className="w-full p-2 bg-neutral-800 border border-stone-700 rounded-md focus:border-indigo-500 text-white"
                         placeholder="URL to an image or video"
                     />
                 </div>
 
-                <button 
-                    type="submit" 
+                <button
+                    type="submit"
                     className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-md transition duration-150"
                 >
                     Post
                 </button>
             </form>
-            
+
             {error && <p className="mt-3 text-red-400 text-sm">Error: {error}</p>}
             {successMessage && <p className="mt-3 text-green-400 text-sm">{successMessage}</p>}
         </div>

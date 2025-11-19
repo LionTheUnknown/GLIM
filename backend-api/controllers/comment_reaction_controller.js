@@ -45,12 +45,29 @@ exports.createCommentReaction = async (req, res) => {
     const userId = req.user.user_id; 
     const reactionType = req.body.reaction_type;
 
+    if (!postId || !commentId) {
+        return res.status(400).json({ error: "Missing required Post ID or Comment ID parameter." });
+    }
+
     if (!reactionType || (reactionType !== 'like' && reactionType !== 'dislike')) {
         return res.status(400).json({ error: "Invalid reaction type. Must be 'like' or 'dislike'." });
     }
 
     try {
         const pool = await poolPromise;
+
+        const commentCheck = await pool.request()
+            .input('CommentId', sql.Int, commentId)
+            .input('PostId', sql.Int, postId)
+            .query(`
+                SELECT 1 FROM comments
+                WHERE comment_id = @CommentId
+                AND post_id = @PostId;
+            `);
+
+        if (commentCheck.recordset.length === 0) {
+            return res.status(404).json({ error: 'Comment not found for the given post.' });
+        }
 
         const checkResult = await pool.request()
             .input('UserId', sql.Int, userId)
@@ -75,7 +92,7 @@ exports.createCommentReaction = async (req, res) => {
                 VALUES (@UserId, NULL, @CommentId, @ReactionType, GETDATE());
             `);
 
-        res.status(201).json({ message: 'Reaction created successfully.',});
+        res.status(201).json({ message: 'Reaction created successfully.'});
 
     } catch (err) {
         console.error('Error creating comment reaction:', err.message);
@@ -87,7 +104,7 @@ exports.createCommentReaction = async (req, res) => {
 exports.updateCommentReaction = async (req, res) => {
     const { postId, commentId } = req.params;
     const userId = req.user.user_id;
-    const reactionType = req.body.reactionType;
+    const reactionType = req.body.reaction_type;
 
     if (!reactionType || (reactionType !== 'like' && reactionType !== 'dislike')) {
         return res.status(400).json({ error: "Invalid reaction type. Must be 'like' or 'dislike'." });
@@ -105,7 +122,7 @@ exports.updateCommentReaction = async (req, res) => {
                 UPDATE reactions 
                 SET reaction_type = @ReactionType, created_at = GETDATE()
                 WHERE user_id = @UserId 
-                AND post_id = @PostId 
+                AND post_id IS NULL 
                 AND comment_id = @CommentId;
             `);
 
@@ -136,7 +153,7 @@ exports.deleteCommentReaction = async (req, res) => {
             .query(`
                 DELETE FROM reactions 
                 WHERE user_id = @UserId 
-                AND post_id = @PostId 
+                AND post_id IS NULL 
                 AND comment_id = @CommentId;
             `);
 
@@ -154,16 +171,36 @@ exports.deleteCommentReaction = async (req, res) => {
 
 // GET COMMENT REACTION COUNTS
 exports.getCommentReactionCounts = async (req, res) => {
-    const postId = req.params?.postId; 
-    const commentId = req.params?.commentId;
+    const postIdParam = req.params?.postId; 
+    const commentIdParam = req.params?.commentId;
 
-    if (!postId || !commentId) {
+    if (!postIdParam || !commentIdParam) {
         return res.status(400).json({ error: "Missing required post ID or comment ID parameter." });
+    }
+
+    const postId = parseInt(postIdParam, 10);
+    const commentId = parseInt(commentIdParam, 10);
+    
+    if (Number.isNaN(postId) || postId <= 0 || Number.isNaN(commentId) || commentId <= 0) {
+        return res.status(400).json({ error: "Invalid Post ID or Comment ID format." });
     }
 
     try {
         const pool = await poolPromise;
         
+        const commentCheck = await pool.request()
+            .input('PostId', sql.Int, postId)
+            .input('CommentId', sql.Int, commentId)
+            .query(`
+                SELECT 1
+                FROM comments
+                WHERE comment_id = @CommentId AND post_id = @PostId; 
+            `);
+
+        if (commentCheck.recordset.length === 0) {
+            return res.status(404).json({ error: 'Comment not found for this post.' });
+        }
+
         const result = await pool.request()
             .input('PostId', sql.Int, postId)
             .input('CommentId', sql.Int, commentId)
@@ -177,8 +214,8 @@ exports.getCommentReactionCounts = async (req, res) => {
 
         const countsResult = result.recordset[0];
         const counts = {
-            like_count: countsResult.like_count || 0,
-            dislike_count: countsResult.dislike_count || 0,
+            like_count: parseInt(countsResult.like_count) || 0,
+            dislike_count: parseInt(countsResult.dislike_count) || 0,
         };
 
         res.status(200).json(counts);

@@ -99,6 +99,48 @@ exports.updatePost = async (req, res) => {
 
 // DELETE POST 
 exports.deletePost = async (req, res) => {
+    const postId = req.params?.postId;
+    const authorId = req.user.user_id;
+
+    if (!postId) {
+        return res.status(400).json({ error: "Post ID is required." });
+    }
+
+    try {
+        const pool = await poolPromise;
+        // NEED TO DELETE SINCE IT HAS FK WITH REACTIONS
+        await pool.request()
+            .input('PostId', sql.Int, postId)
+            .query(`
+                DELETE FROM reactions
+                WHERE post_id = @PostId 
+                AND comment_id IS NULL;
+            `);
+        // THIS ACTUALLY DELETES THE POST NOW FR
+        const result = await pool.request()
+            .input('PostId', sql.Int, postId)
+            .input('AuthorId', sql.Int, authorId)
+            .query(`
+                DELETE FROM posts
+                WHERE post_id = @PostId 
+                AND author_id = @AuthorId;
+            `);
+        
+        const rowsAffected = result.rowsAffected[0];
+        
+        if (rowsAffected === 0) {
+            return res.status(403).json({ message: 'Forbidden: Post not found or you are not the author.' });
+        }
+
+        res.status(200).json({ message: 'Post and all associated data deleted successfully.' });
+
+    } catch (err) {
+        console.error('Error deleting post:', err.message);
+        res.status(500).json({ error: 'Failed to delete post.', details: err.message });
+    }
+};
+
+/*exports.deletePost = async (req, res) => {
     const postId = req.params.postId;   
     const userId = req.user.user_id;
 
@@ -122,9 +164,9 @@ exports.deletePost = async (req, res) => {
         console.error('Error deleting post:', err.message);
         res.status(500).json({ error: 'Failed to delete post.' });
     }
-};
+};*/
 
-exports.deletePost = async (req, res) => {
+/*exports.deletePost = async (req, res) => {
     const postId = req.params?.postId;
     const authorId = req.user.user_id;
 
@@ -158,7 +200,7 @@ exports.deletePost = async (req, res) => {
         res.status(500).json({ error: 'Failed to delete post.', details: err.message });
     }
 };
-
+*/
 const formatPost = (post, reactionCounts, userReactionType) => {
     if (!post) return null;
 

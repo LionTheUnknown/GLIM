@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback, ReactElement, use } from 'react'
 import axios from 'axios'
-import { Post, Comment } from '@/app/actions' 
-import HighlightedPost from '@/components/highlighted-post' 
-import PostCommentsSection from '@/components/commentSection' 
+import api from '@/utils/api'
+import { useRouter } from 'next/navigation'
+import { Post, Comment } from '@/app/actions'
+import HighlightedPost from '@/components/highlighted-post'
+import PostCommentsSection from '@/components/commentSection'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
-const getToken = () => localStorage.getItem('token')
 
 interface PostWithReactions extends Post {
     reaction_counts: {
@@ -18,7 +19,8 @@ interface PostWithReactions extends Post {
 }
 
 export default function PostPage({ params }: { params: Promise<{ postId: string }> }): ReactElement {
-    const { postId } = use(params); 
+    const { postId } = use(params);
+    const router = useRouter();
     const [postData, setPostData] = useState<PostWithReactions | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
     const [loadingPost, setLoadingPost] = useState(true);
@@ -29,32 +31,32 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
     const fetchComments = useCallback(async () => {
         setLoadingComments(true);
         try {
-            const response = await axios.get(`${API_BASE_URL}/posts/${postId}/comments`); 
-            setComments(response.data); 
+            const response = await api.get(`${API_BASE_URL}/posts/${postId}/comments`);
+            setComments(response.data);
         } catch (err) {
             console.error("Failed to load comments:", err);
-            setComments([]); 
+            setComments([]);
         } finally {
             setLoadingComments(false);
         }
     }, [postId]);
 
     useEffect(() => {
-        const authToken = getToken();
-        setToken(authToken); 
-        
+        // Check for token using the api utility logic or just localStorage
+        const authToken = localStorage.getItem('token');
+        setToken(authToken);
+
         if (!authToken) {
-            window.location.replace('/login');
+            router.push('/login');
             return;
         }
 
         const loadPostData = async () => {
             setLoadingPost(true);
-            
+
             try {
-                const postRes = await axios.get<PostWithReactions>(
-                    `${API_BASE_URL}/posts/${postId}`,{ headers: { Authorization: `Bearer ${authToken}` } }
-                );
+                // api client automatically adds the token header
+                const postRes = await api.get<PostWithReactions>(`/posts/${postId}`);
 
                 setPostData(postRes.data);
                 setError(null);
@@ -75,9 +77,9 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
         loadPostData();
         fetchComments();
 
-    }, [postId, fetchComments]);
-    
-    
+    }, [postId, fetchComments, router]);
+
+
     if (loadingPost) {
         return <div className="text-white p-6">Loading Post...</div>;
     }
@@ -93,9 +95,9 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
     return (
         <div className="container mx-auto p-4 max-w-3xl">
             <div className="bg-neutral-900 border border-stone-600 rounded-lg p-6 shadow-xl mb-8">
-                <HighlightedPost post={postData} /> 
+                <HighlightedPost post={postData} />
                 <PostCommentsSection
-                    postId={postData.post_id} 
+                    postId={postData.post_id}
                     comments={comments}
                     loadingComments={loadingComments}
                     token={token}
