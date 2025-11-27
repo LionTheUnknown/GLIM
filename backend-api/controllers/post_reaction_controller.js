@@ -1,5 +1,4 @@
-const sql = require('mssql');
-const { poolPromise } = require('../db');
+const { pool } = require('../db');
 
 // GET POST REACTION
 exports.getPostReaction = async (req, res) => {
@@ -16,32 +15,27 @@ exports.getPostReaction = async (req, res) => {
     }
 
     try {
-        const pool = await poolPromise;
+        // Check if post exists
+        const postCheck = await pool.query(
+            'SELECT 1 FROM posts WHERE post_id = $1',
+            [postId]
+        );
 
-        const postCheck = await pool.request()
-            .input('PostId', sql.Int, postId)
-            .query(`
-                SELECT 1
-                FROM posts
-                WHERE post_id = @PostId;
-            `);
-
-        if (postCheck.recordset.length === 0) {
+        if (postCheck.rows.length === 0) {
             return res.status(404).json({ error: 'Post not found.' });
         }
 
-        const result = await pool.request()
-            .input('PostId', sql.Int, postId)
-            .input('UserId', sql.Int, userId)
-            .query(`
-                SELECT TOP 1 reaction_type 
-                FROM reactions 
-                WHERE post_id = @PostId 
-                AND user_id = @UserId 
-                AND comment_id IS NULL;
-            `);
+        // Get user's reaction
+        const result = await pool.query(`
+            SELECT reaction_type 
+            FROM reactions 
+            WHERE post_id = $1 
+            AND user_id = $2 
+            AND comment_id IS NULL
+            LIMIT 1
+        `, [postId, userId]);
 
-        const userReactionType = result.recordset[0]?.reaction_type || null;
+        const userReactionType = result.rows[0]?.reaction_type || null;
 
         res.status(200).json({ user_reaction_type: userReactionType });
 
@@ -53,7 +47,7 @@ exports.getPostReaction = async (req, res) => {
 
 // CREATE POST REACTION
 exports.createPostReaction = async (req, res) => {
-    const postId  = req.params?.postId;
+    const postId = req.params?.postId;
     const userId = req.user.user_id;
     const reactionType = req.body.reaction_type;
 
@@ -66,45 +60,34 @@ exports.createPostReaction = async (req, res) => {
     }
 
     try {
-        const pool = await poolPromise;
+        // Check if post exists
+        const postCheck = await pool.query(
+            'SELECT 1 FROM posts WHERE post_id = $1',
+            [postId]
+        );
 
-        const postCheck = await pool.request()
-            .input('PostId', sql.Int, postId)
-            .query(`
-                SELECT 1
-                FROM posts
-                WHERE post_id = @PostId;
-            `);
-
-        if (postCheck.recordset.length === 0) {
+        if (postCheck.rows.length === 0) {
             return res.status(404).json({ error: 'Post not found.' });
         }
 
-        const checkResult = await pool.request()
-            .input('UserId', sql.Int, userId)
-            .input('PostId', sql.Int, postId)
-            .input('ReactionType', sql.VarChar, reactionType)
-            .query(`
-                SELECT 1
-                FROM reactions
-                WHERE user_id = @UserId
-                AND post_id = @PostId
-                AND comment_id IS NULL
-                AND reaction_type = @ReactionType;
-            `);
+        // Check if reaction already exists
+        const checkResult = await pool.query(`
+            SELECT 1 FROM reactions
+            WHERE user_id = $1
+            AND post_id = $2
+            AND comment_id IS NULL
+            AND reaction_type = $3
+        `, [userId, postId, reactionType]);
         
-        if (checkResult.recordset.length > 0) {
+        if (checkResult.rows.length > 0) {
             return res.status(409).json({ error: 'Conflict: Reaction already exists. Use PUT to update.' });
         }
 
-        await pool.request()
-            .input('UserId', sql.Int, userId)
-            .input('PostId', sql.Int, postId)
-            .input('ReactionType', sql.VarChar, reactionType)
-            .query(`
-                INSERT INTO reactions (user_id, post_id, reaction_type, created_at)
-                VALUES (@UserId, @PostId, @ReactionType, GETDATE());
-            `);
+        // Insert new reaction
+        await pool.query(`
+            INSERT INTO reactions (user_id, post_id, reaction_type, created_at)
+            VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+        `, [userId, postId, reactionType]);
 
         res.status(201).json({ 
             message: 'Reaction created successfully.'
@@ -127,21 +110,17 @@ exports.updatePostReaction = async (req, res) => {
     }
 
     try {
-        const pool = await poolPromise;
-        
-        const result = await pool.request()
-            .input('UserId', sql.Int, userId)
-            .input('PostId', sql.Int, postId)
-            .input('ReactionType', sql.VarChar, reactionType)
-            .query(`
-                UPDATE reactions 
-                SET reaction_type = @ReactionType, created_at = GETDATE()
-                WHERE user_id = @UserId 
-                AND post_id = @PostId 
-                AND comment_id IS NULL;
-            `);
+        const result = await pool.query(`
+            UPDATE reactions 
+            SET reaction_type = $1, created_at = CURRENT_TIMESTAMP
+            WHERE user_id = $2 
+            AND post_id = $3 
+            AND comment_id IS NULL
+        `, [reactionType, userId, postId]);
+
         console.log('Current reaction for this user on post', postId, ':', reactionType);
-        if (result.rowsAffected[0] === 0) {
+        
+        if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Reaction not found for update. Use POST to create.' });
         }
         
@@ -161,19 +140,14 @@ exports.deletePostReaction = async (req, res) => {
     const userId = req.user.user_id;
 
     try {
-        const pool = await poolPromise;
+        const result = await pool.query(`
+            DELETE FROM reactions 
+            WHERE user_id = $1 
+            AND post_id = $2 
+            AND comment_id IS NULL
+        `, [userId, postId]);
 
-        const result = await pool.request()
-            .input('UserId', sql.Int, userId)
-            .input('PostId', sql.Int, postId)
-            .query(`
-                DELETE FROM reactions 
-                WHERE user_id = @UserId 
-                AND post_id = @PostId 
-                AND comment_id IS NULL;
-            `);
-
-        if (result.rowsAffected[0] === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Reaction not found for deletion.' });
         }
         
@@ -201,31 +175,26 @@ exports.getPostReactionCounts = async (req, res) => {
     }
     
     try {
-        const pool = await poolPromise;
+        // Check if post exists
+        const postCheck = await pool.query(
+            'SELECT 1 FROM posts WHERE post_id = $1',
+            [postId]
+        );
 
-        const postCheck = await pool.request()
-            .input('PostId', sql.Int, postId)
-            .query(`
-                SELECT 1
-                FROM posts
-                WHERE post_id = @PostId; 
-            `);
-
-        if (postCheck.recordset.length === 0) {
+        if (postCheck.rows.length === 0) {
             return res.status(404).json({ error: 'Post not found.' });
         }
 
-        const result = await pool.request()
-            .input('PostId', sql.Int, postId)
-            .query(`
-                SELECT 
-                    SUM(CASE WHEN reaction_type = 'like' THEN 1 ELSE 0 END) AS like_count,
-                    SUM(CASE WHEN reaction_type = 'dislike' THEN 1 ELSE 0 END) AS dislike_count
-                FROM reactions
-                WHERE post_id = @PostId AND comment_id IS NULL;
-            `);
+        // Get reaction counts
+        const result = await pool.query(`
+            SELECT 
+                COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS like_count,
+                COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) AS dislike_count
+            FROM reactions
+            WHERE post_id = $1 AND comment_id IS NULL
+        `, [postId]);
         
-        const record = result.recordset[0] || {};
+        const record = result.rows[0] || {};
         const counts = {
             like_count: parseInt(record.like_count) || 0,
             dislike_count: parseInt(record.dislike_count) || 0
@@ -238,35 +207,36 @@ exports.getPostReactionCounts = async (req, res) => {
     }
 };
 
-// HANDLE POST REACTION
+// HANDLE POST REACTION (Smart toggle/update)
 exports.handlePostReaction = async (req, res) => {
-    const postId  = req.params?.postId;
+    const postId = req.params?.postId;
     const userId = req.user.user_id;
     const reaction_type = req.body.reaction_type;
 
     if (!postId || !userId) {
         return res.status(400).json({ error: "Missing Post ID or User ID." });
     }
+
     try {
-        const pool = await poolPromise;
+        // Get existing reaction
+        const existing = await pool.query(`
+            SELECT reaction_type 
+            FROM reactions 
+            WHERE user_id = $1 AND post_id = $2 AND comment_id IS NULL
+            LIMIT 1
+        `, [userId, postId]);
 
-        const existing = await pool.request()
-            .input('UserId', sql.Int, userId)
-            .input('PostId', sql.Int, postId)
-            .query(`
-                SELECT TOP 1 reaction_type 
-                FROM reactions 
-                WHERE user_id = @UserId AND post_id = @PostId AND comment_id IS NULL;
-            `);
-
-        const currentReaction = existing.recordset[0]?.reaction_type || null;
+        const currentReaction = existing.rows[0]?.reaction_type || null;
         
+        // Toggle: If same reaction, delete it
         if (currentReaction === reaction_type) {
             return exports.deletePostReaction(req, res);
         }
+        // Update: If different reaction exists
         else if (currentReaction !== null && currentReaction !== reaction_type) {
             return exports.updatePostReaction(req, res);
         }
+        // Create: If no reaction exists
         else if (currentReaction === null) {
             return exports.createPostReaction(req, res);
         }
@@ -278,3 +248,4 @@ exports.handlePostReaction = async (req, res) => {
         res.status(500).json({ error: 'Failed to handle post reaction.', details: err.message });
     }
 };
+

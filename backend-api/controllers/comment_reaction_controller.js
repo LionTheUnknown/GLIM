@@ -1,5 +1,4 @@
-const sql = require('mssql');
-const { poolPromise } = require('../db');
+const { pool } = require('../db');
 
 // GET COMMENT REACTION
 exports.getCommentReaction = async (req, res) => {
@@ -15,20 +14,16 @@ exports.getCommentReaction = async (req, res) => {
     }
 
     try {
-        const pool = await poolPromise;
-
-        const userReactionResult = await pool.request()
-            .input('UserId', sql.Int, userId)
-            .input('CommentId', sql.Int, commentId)
-            .query(`
-                SELECT TOP 1 reaction_type 
-                FROM reactions 
-                WHERE user_id = @UserId 
-                AND comment_id = @CommentId 
-                AND post_id IS NULL; -- CRITICAL: Respect parent exclusivity
-            `);
+        const userReactionResult = await pool.query(`
+            SELECT reaction_type 
+            FROM reactions 
+            WHERE user_id = $1 
+            AND comment_id = $2 
+            AND post_id IS NULL
+            LIMIT 1
+        `, [userId, commentId]);
         
-        const userReactionType = userReactionResult.recordset[0]?.reaction_type || null;
+        const userReactionType = userReactionResult.rows[0]?.reaction_type || null;
             
         res.status(200).json({
             user_reaction_type: userReactionType
@@ -39,6 +34,7 @@ exports.getCommentReaction = async (req, res) => {
         res.status(500).json({ error: 'Failed to retrieve reaction details.', details: err.message });
     }
 };
+
 // CREATE COMMENT REACTION
 exports.createCommentReaction = async (req, res) => {
     const { postId, commentId } = req.params;
@@ -54,43 +50,33 @@ exports.createCommentReaction = async (req, res) => {
     }
 
     try {
-        const pool = await poolPromise;
+        // Check if comment exists and belongs to post
+        const commentCheck = await pool.query(`
+            SELECT 1 FROM comments
+            WHERE comment_id = $1 AND post_id = $2
+        `, [commentId, postId]);
 
-        const commentCheck = await pool.request()
-            .input('CommentId', sql.Int, commentId)
-            .input('PostId', sql.Int, postId)
-            .query(`
-                SELECT 1 FROM comments
-                WHERE comment_id = @CommentId
-                AND post_id = @PostId;
-            `);
-
-        if (commentCheck.recordset.length === 0) {
+        if (commentCheck.rows.length === 0) {
             return res.status(404).json({ error: 'Comment not found for the given post.' });
         }
 
-        const checkResult = await pool.request()
-            .input('UserId', sql.Int, userId)
-            .input('CommentId', sql.Int, commentId)
-            .query(`
-                SELECT 1 FROM reactions 
-                WHERE user_id = @UserId 
-                AND comment_id = @CommentId 
-                AND post_id IS NULL;
-            `);
+        // Check if reaction already exists
+        const checkResult = await pool.query(`
+            SELECT 1 FROM reactions 
+            WHERE user_id = $1 
+            AND comment_id = $2 
+            AND post_id IS NULL
+        `, [userId, commentId]);
         
-        if (checkResult.recordset.length > 0) {
+        if (checkResult.rows.length > 0) {
             return res.status(409).json({ error: 'Conflict: Reaction already exists. Use PUT to update.' });
         }
 
-        await pool.request()
-            .input('UserId', sql.Int, userId)
-            .input('CommentId', sql.Int, commentId)
-            .input('ReactionType', sql.VarChar, reactionType)
-            .query(`
-                INSERT INTO reactions (user_id, post_id, comment_id, reaction_type, created_at)
-                VALUES (@UserId, NULL, @CommentId, @ReactionType, GETDATE());
-            `);
+        // Insert new reaction
+        await pool.query(`
+            INSERT INTO reactions (user_id, post_id, comment_id, reaction_type, created_at)
+            VALUES ($1, NULL, $2, $3, CURRENT_TIMESTAMP)
+        `, [userId, commentId, reactionType]);
 
         res.status(201).json({ message: 'Reaction created successfully.'});
 
@@ -111,22 +97,15 @@ exports.updateCommentReaction = async (req, res) => {
     }
 
     try {
-        const pool = await poolPromise;
-        
-        const result = await pool.request()
-            .input('UserId', sql.Int, userId)
-            .input('PostId', sql.Int, postId)
-            .input('CommentId', sql.Int, commentId)
-            .input('ReactionType', sql.VarChar, reactionType)
-            .query(`
-                UPDATE reactions 
-                SET reaction_type = @ReactionType, created_at = GETDATE()
-                WHERE user_id = @UserId 
-                AND post_id IS NULL 
-                AND comment_id = @CommentId;
-            `);
+        const result = await pool.query(`
+            UPDATE reactions 
+            SET reaction_type = $1, created_at = CURRENT_TIMESTAMP
+            WHERE user_id = $2 
+            AND post_id IS NULL 
+            AND comment_id = $3
+        `, [reactionType, userId, commentId]);
 
-        if (result.rowsAffected[0] === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Reaction not found for update. Use POST to create.' });
         }
 
@@ -144,20 +123,14 @@ exports.deleteCommentReaction = async (req, res) => {
     const userId = req.user.user_id;
 
     try {
-        const pool = await poolPromise;
+        const result = await pool.query(`
+            DELETE FROM reactions 
+            WHERE user_id = $1 
+            AND post_id IS NULL 
+            AND comment_id = $2
+        `, [userId, commentId]);
 
-        const result = await pool.request()
-            .input('UserId', sql.Int, userId)
-            .input('PostId', sql.Int, postId)
-            .input('CommentId', sql.Int, commentId)
-            .query(`
-                DELETE FROM reactions 
-                WHERE user_id = @UserId 
-                AND post_id IS NULL 
-                AND comment_id = @CommentId;
-            `);
-
-        if (result.rowsAffected[0] === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Reaction not found for deletion.' });
         }
 
@@ -186,33 +159,26 @@ exports.getCommentReactionCounts = async (req, res) => {
     }
 
     try {
-        const pool = await poolPromise;
-        
-        const commentCheck = await pool.request()
-            .input('PostId', sql.Int, postId)
-            .input('CommentId', sql.Int, commentId)
-            .query(`
-                SELECT 1
-                FROM comments
-                WHERE comment_id = @CommentId AND post_id = @PostId; 
-            `);
+        // Check if comment exists for this post
+        const commentCheck = await pool.query(`
+            SELECT 1 FROM comments
+            WHERE comment_id = $1 AND post_id = $2
+        `, [commentId, postId]);
 
-        if (commentCheck.recordset.length === 0) {
+        if (commentCheck.rows.length === 0) {
             return res.status(404).json({ error: 'Comment not found for this post.' });
         }
 
-        const result = await pool.request()
-            .input('PostId', sql.Int, postId)
-            .input('CommentId', sql.Int, commentId)
-            .query(`
-                SELECT 
-                    SUM(CASE WHEN reaction_type = 'like' THEN 1 ELSE 0 END) AS like_count,
-                    SUM(CASE WHEN reaction_type = 'dislike' THEN 1 ELSE 0 END) AS dislike_count
-                FROM reactions
-                WHERE post_id = @PostId AND comment_id = @CommentId;
-            `);
+        // Get reaction counts
+        const result = await pool.query(`
+            SELECT 
+                COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS like_count,
+                COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) AS dislike_count
+            FROM reactions
+            WHERE comment_id = $1 AND post_id IS NULL
+        `, [commentId]);
 
-        const countsResult = result.recordset[0];
+        const countsResult = result.rows[0];
         const counts = {
             like_count: parseInt(countsResult.like_count) || 0,
             dislike_count: parseInt(countsResult.dislike_count) || 0,
@@ -224,3 +190,46 @@ exports.getCommentReactionCounts = async (req, res) => {
         res.status(500).json({ error: 'Failed to retrieve comment reaction counts.', details: err.message });
     }
 };
+
+// HANDLE COMMENT REACTION (Smart toggle/update)
+exports.handleCommentReaction = async (req, res) => {
+    const { postId, commentId } = req.params;
+    const userId = req.user.user_id;
+    const reaction_type = req.body.reaction_type;
+
+    if (!postId || !commentId || !userId) {
+        return res.status(400).json({ error: "Missing required parameters." });
+    }
+
+    try {
+        // Get existing reaction
+        const existing = await pool.query(`
+            SELECT reaction_type 
+            FROM reactions 
+            WHERE user_id = $1 AND comment_id = $2 AND post_id IS NULL
+            LIMIT 1
+        `, [userId, commentId]);
+
+        const currentReaction = existing.rows[0]?.reaction_type || null;
+        
+        // Toggle: If same reaction, delete it
+        if (currentReaction === reaction_type) {
+            return exports.deleteCommentReaction(req, res);
+        }
+        // Update: If different reaction exists
+        else if (currentReaction !== null && currentReaction !== reaction_type) {
+            return exports.updateCommentReaction(req, res);
+        }
+        // Create: If no reaction exists
+        else if (currentReaction === null) {
+            return exports.createCommentReaction(req, res);
+        }
+        
+        return res.status(400).json({ error: "Invalid reaction type or no change." });
+
+    } catch (err) {
+        console.error('Error handling comment reaction:', err.message);
+        res.status(500).json({ error: 'Failed to handle comment reaction.', details: err.message });
+    }
+};
+

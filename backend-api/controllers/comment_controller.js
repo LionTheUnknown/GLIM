@@ -1,40 +1,4 @@
-const { poolPromise, sql } = require('../db');
-
-// make a method for checking if post id is valid
-
-
-/*
-// GET ALL COMMENTS
-exports.getAllComments = async (req, res) => {
-    try {
-        const pool = await poolPromise;
-
-        const resultSet = await pool.request().query(`
-            SELECT c.comment_id, c.post_id, c.content_text, c.parent_comment_id,
-                u.display_name AS author_name, 
-                c.created_at
-            FROM comments c
-            JOIN users u ON c.author_id = u.user_id 
-            ORDER BY c.created_at DESC;
-        `);
-
-        const formattedComments = resultSet.recordset.map(record => ({
-            comment_id: record.comment_id,
-            post_id: record.post_id,
-            content_text: record.content_text,
-            author_name: record.author_name,
-            created_at: record.created_at, 
-            parent_comment_id: record.parent_comment_id,
-        }));
-        
-        res.status(200).json(formattedComments);
-        
-    } catch (err) {
-        console.error('Error fetching comments:', err.message);
-        res.status(500).json({ error: 'Failed to retrieve comments', details: err.message });
-    }
-};
-*/
+const { pool } = require('../db');
 
 // CREATE COMMENT
 exports.createComment = async (req, res) => {
@@ -57,43 +21,43 @@ exports.createComment = async (req, res) => {
     }
 
     try {
-        const pool = await poolPromise;
+        // Check if post exists
+        const postCheck = await pool.query(
+            'SELECT post_id FROM posts WHERE post_id = $1',
+            [postId]
+        );
 
-        const postCheck = await pool.request()
-            .input('postId', sql.Int, postId)
-            .query('SELECT post_id FROM posts WHERE post_id = @postId;');
-
-        if (postCheck.recordset.length === 0) {
+        if (postCheck.rows.length === 0) {
             return res.status(404).json({ error: 'Post not found.' });
         }
 
+        // Check if parent comment exists and belongs to the same post
         if (parentId != null) {
-            const parentCheck = await pool.request()
-                .input('parentId', sql.Int, parentId)
-                .query('SELECT comment_id, post_id FROM comments WHERE comment_id = @parentId;');
+            const parentCheck = await pool.query(
+                'SELECT comment_id, post_id FROM comments WHERE comment_id = $1',
+                [parentId]
+            );
 
-            if (parentCheck.recordset.length === 0) {
+            if (parentCheck.rows.length === 0) {
                 return res.status(400).json({ error: 'Parent comment not found.' });
             }
 
-            const parentComment = parentCheck.recordset[0];
+            const parentComment = parentCheck.rows[0];
             if (parentComment.post_id !== postId) {
-                return res.status(400).json({ error: 'Parent comment does not belong to the specified post.' });
+                return res.status(400).json({ 
+                    error: 'Parent comment does not belong to the specified post.' 
+                });
             }
         }
 
-        const insertResult = await pool.request()
-            .input('postId', sql.Int, postId)
-            .input('authorId', sql.Int, authorId)
-            .input('contentText', sql.NVarChar(4000), content_text)
-            .input('parentCommentId', sql.Int, parentId)
-            .query(`
-                INSERT INTO comments (post_id, author_id, content_text, parent_comment_id)
-                OUTPUT INSERTED.comment_id, INSERTED.created_at
-                VALUES (@postId, @authorId, @contentText, @parentCommentId);
-            `);
+        // Insert the comment and return the created data
+        const insertResult = await pool.query(`
+            INSERT INTO comments (post_id, author_id, content_text, parent_comment_id)
+            VALUES ($1, $2, $3, $4)
+            RETURNING comment_id, created_at
+        `, [postId, authorId, content_text, parentId]);
 
-        const inserted = insertResult.recordset[0];
+        const inserted = insertResult.rows[0];
         res.status(201).json({
             message: 'Comment created successfully.',
             comment_id: inserted.comment_id,
@@ -112,24 +76,20 @@ exports.getComment = async (req, res) => {
     const commentId = req.params.commentId;
 
     try {
-        const pool = await poolPromise;
-        const result = await pool.request()
-            .input('postId', sql.Int, postId)
-            .input('commentId', sql.Int, commentId)
-            .query(`
-                SELECT c.comment_id, c.post_id, c.content_text, c.parent_comment_id,
-                    u.display_name AS author_name, 
-                    c.created_at
-                FROM comments c
-                JOIN users u ON c.author_id = u.user_id 
-                WHERE c.post_id = @postId AND c.comment_id = @commentId;
-            `);
+        const result = await pool.query(`
+            SELECT c.comment_id, c.post_id, c.content_text, c.parent_comment_id,
+                u.display_name AS author_name, 
+                c.created_at
+            FROM comments c
+            JOIN users u ON c.author_id = u.user_id 
+            WHERE c.post_id = $1 AND c.comment_id = $2
+        `, [postId, commentId]);
 
-        if (result.recordset.length === 0) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Comment not found.' });
         }
 
-        const comment = result.recordset[0];
+        const comment = result.rows[0];
         res.status(200).json({
             comment_id: comment.comment_id,
             post_id: comment.post_id,
@@ -144,7 +104,7 @@ exports.getComment = async (req, res) => {
     }
 };
 
-// UPDATE POST
+// UPDATE COMMENT
 exports.updateComment = async (req, res) => {
     const commentId = req.params.commentId; 
     const postId = req.params.postId; 
@@ -156,22 +116,17 @@ exports.updateComment = async (req, res) => {
     }
 
     try {
-        const pool = await poolPromise;
-        const result = await pool.request()
-            .input('CommentId', sql.Int, commentId)
-            .input('PostId', sql.Int, postId)
-            .input('UserId', sql.Int, userId)
-            .input('ContentText', sql.NVarChar(4000), content_text) 
-            .query(`
-                UPDATE comments  
-                SET 
-                    content_text = @ContentText
-                WHERE comment_id = @CommentId 
-                  AND post_id = @PostId 
-                  AND author_id = @UserId; 
-            `);
+        const result = await pool.query(`
+            UPDATE comments  
+            SET 
+                content_text = $1,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE comment_id = $2 
+              AND post_id = $3 
+              AND author_id = $4
+        `, [content_text, commentId, postId, userId]);
 
-        if (result.rowsAffected[0] === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ 
                 error: 'Comment not found, user is not the author, or comment does not belong to this post.' 
             });
@@ -185,26 +140,21 @@ exports.updateComment = async (req, res) => {
     }
 };
 
-// DELETE POST 
+// DELETE COMMENT
 exports.deleteComment = async (req, res) => {
     const commentId = req.params.commentId;
     const postId = req.params.postId;
     const userId = req.user.user_id;
 
     try {
-        const pool = await poolPromise;
-        const result = await pool.request()
-            .input('CommentId', sql.Int, commentId)
-            .input('PostId', sql.Int, postId)
-            .input('UserId', sql.Int, userId)
-            .query(`
-                DELETE FROM comments 
-                WHERE comment_id = @CommentId 
-                  AND post_id = @PostId
-                  AND author_id = @UserId; 
-            `);
+        const result = await pool.query(`
+            DELETE FROM comments 
+            WHERE comment_id = $1 
+              AND post_id = $2
+              AND author_id = $3
+        `, [commentId, postId, userId]);
 
-        if (result.rowsAffected[0] === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ 
                 error: 'Comment not found, user is not the author, or comment does not belong to this post.' 
             });
@@ -218,6 +168,7 @@ exports.deleteComment = async (req, res) => {
     }
 };
 
+// GET ALL COMMENTS FOR A POST
 exports.getCommentsByPost = async (req, res) => {
     const postIdParam = req.params?.postId;
 
@@ -231,33 +182,28 @@ exports.getCommentsByPost = async (req, res) => {
     }
 
     try {
-        const pool = await poolPromise;
+        // Check if post exists
+        const postCheck = await pool.query(
+            'SELECT 1 FROM posts WHERE post_id = $1',
+            [postId]
+        );
 
-        const postCheck = await pool.request()
-            .input('PostId', sql.Int, postId)
-            .query(`
-                SELECT 1
-                FROM posts
-                WHERE id = @PostId; 
-            `);
-
-        if (postCheck.recordset.length === 0) {
+        if (postCheck.rows.length === 0) {
             return res.status(404).json({ error: 'Post not found.' });
         }
 
-        const resultSet = await pool.request()
-            .input('postId', sql.Int, postId)
-            .query(`
-                SELECT c.comment_id, c.post_id, c.content_text, c.parent_comment_id,
-                    u.display_name AS author_name, 
-                    c.created_at
-                FROM comments c
-                JOIN users u ON c.author_id = u.user_id 
-                WHERE c.post_id = @postId
-                ORDER BY c.created_at ASC;
-            `);
+        // Get all comments for the post
+        const result = await pool.query(`
+            SELECT c.comment_id, c.post_id, c.content_text, c.parent_comment_id,
+                u.display_name AS author_name, 
+                c.created_at
+            FROM comments c
+            JOIN users u ON c.author_id = u.user_id 
+            WHERE c.post_id = $1
+            ORDER BY c.created_at ASC
+        `, [postId]);
 
-        const formattedComments = resultSet.recordset.map(record => ({
+        const formattedComments = result.rows.map(record => ({
             comment_id: record.comment_id,
             post_id: record.post_id,
             content_text: record.content_text,
@@ -273,3 +219,4 @@ exports.getCommentsByPost = async (req, res) => {
         res.status(500).json({ error: 'Failed to retrieve comments for post', details: err.message });
     }
 };
+

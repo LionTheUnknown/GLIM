@@ -1,19 +1,18 @@
-const { poolPromise, sql } = require('../db');
+const { pool } = require('../db');
 
-// GET ALL Categories
+// GET ALL CATEGORIES
 exports.getAllCategories = async (req, res) => {
     try {
-        const pool = await poolPromise;
-
-        const resultSet = await pool.request().query(`
-            SELECT categories.category_id, categories.category_name
+        const result = await pool.query(`
+            SELECT category_id, category_name, description
             FROM categories
-            ORDER BY categories.category_name DESC;
+            ORDER BY category_name ASC
         `);
 
-        const formattedCategories = resultSet.recordset.map(record => ({
+        const formattedCategories = result.rows.map(record => ({
             category_id: record.category_id,
             category_name: record.category_name,
+            description: record.description,
         }));
         
         res.status(200).json(formattedCategories);
@@ -24,129 +23,27 @@ exports.getAllCategories = async (req, res) => {
     }
 };
 
-// UPDATE CATEGORY
-exports.updateCategory = async (req, res) => {
-    const categoryId = req.params.categoryId;
-    const { category_name } = req.body;
-    
-    if (!category_name || category_name.trim().length === 0) {
-        return res.status(400).json({ error: 'Category name cannot be empty.' });
-    }
-
-    try {
-        const pool = await poolPromise;
-        const result = await pool.request()
-            .input('CategoryId', sql.Int, categoryId)
-            .input('CategoryName', sql.NVarChar(255), category_name)
-            .query(`
-                UPDATE categories 
-                SET category_name = @CategoryName
-                WHERE category_id = @CategoryId;
-            `);
-
-        if (result.rowsAffected[0] === 0) {
-            return res.status(404).json({ error: 'Category not found.' });
-        }
-
-        res.status(200).json({ message: 'Category updated successfully.' });
-
-    } catch (err) {
-        console.error('Error updating category:', err.message);
-        res.status(500).json({ error: 'Failed to update category.', details: err.message });
-    }
-};
-
-// DELETE CATEGORY
-exports.deleteCategory = async (req, res) => {
-    const categoryId = req.params.categoryId;
-
-    try {
-        const pool = await poolPromise;
-        
-        const transaction = new sql.Transaction(pool);
-        await transaction.begin();
-
-        try {
-            const result = await transaction.request()
-                .input('CategoryId', sql.Int, categoryId)
-                .query(`
-                    DELETE FROM categories 
-                    WHERE category_id = @CategoryId;
-                `);
-
-            if (result.rowsAffected[0] === 0) {
-                await transaction.rollback();
-                return res.status(404).json({ error: 'Category not found.' });
-            }
-
-            await transaction.commit();
-            res.status(200).json({ message: 'Category deleted successfully, and associated posts were unassigned.' });
-
-        } catch (txnErr) {
-            await transaction.rollback();
-            throw txnErr;
-        }
-
-    } catch (err) {
-        console.error('Error deleting category:', err.message);
-        res.status(500).json({ error: 'Failed to delete category.', details: err.message });
-    }
-};
-
-// CREATE POST
-exports.createPost = async (req, res) => {
-    const authorId = req.user.user_id;
-
-    const { content_text, category_id, media_url} = req.body;
-
-    if(!content_text || content_text.trim().length === 0){
-        return res.status(400).json({ error: 'Something needs to be written for the post to be made' });
-    }
-
-    try {
-        const pool = await poolPromise;
-        const request = pool.request()
-        .input('authorId', sql.Int, authorId) 
-        .input('categoryId', sql.Int, category_id ? parseInt(category_id) : null)
-        .input('contentText', sql.NVarChar(4000), content_text)
-        .input('mediaUrl', sql.VarChar(255), media_url || null);
-
-        await request.query(`
-            INSERT INTO posts (author_id, category_id, content_text, media_url) 
-            VALUES (@authorId, @categoryId, @contentText, @mediaUrl)
-        `);
-
-        res.status(201).json({ message: 'Post created successfully.' });
-
-        } catch (err) {
-        console.error('Error creating post:', err.message);
-        res.status(500).json({ error: 'Failed to create post.', details: err.message });
-    }
-};
 // GET CATEGORY BY ID
 exports.getCategoryById = async (req, res) => {
     const categoryId = req.params.categoryId; 
 
     try {
-        const pool = await poolPromise;
+        const result = await pool.query(`
+            SELECT category_id, category_name, description
+            FROM categories
+            WHERE category_id = $1
+        `, [categoryId]);
 
-        const resultSet = await pool.request()
-            .input('CategoryId', sql.Int, categoryId)
-            .query(`
-                SELECT category_id, category_name
-                FROM categories
-                WHERE category_id = @CategoryId;
-            `);
-
-        if (resultSet.recordset.length === 0) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Category not found.' });
         }
 
-        const record = resultSet.recordset[0];
+        const record = result.rows[0];
 
         const formattedCategory = {
             category_id: record.category_id,
             category_name: record.category_name,
+            description: record.description,
         };
         
         res.status(200).json(formattedCategory);
@@ -156,3 +53,99 @@ exports.getCategoryById = async (req, res) => {
         res.status(500).json({ error: 'Failed to retrieve category.', details: err.message });
     }
 };
+
+// CREATE CATEGORY
+exports.createCategory = async (req, res) => {
+    const { category_name, description } = req.body;
+    
+    if (!category_name || category_name.trim().length === 0) {
+        return res.status(400).json({ error: 'Category name is required.' });
+    }
+
+    try {
+        const result = await pool.query(`
+            INSERT INTO categories (category_name, description)
+            VALUES ($1, $2)
+            RETURNING category_id, category_name, description, created_at
+        `, [category_name.trim(), description || null]);
+
+        const newCategory = result.rows[0];
+        res.status(201).json({
+            message: 'Category created successfully.',
+            category: newCategory
+        });
+
+    } catch (err) {
+        console.error('Error creating category:', err.message);
+        
+        // Handle unique constraint violation
+        if (err.code === '23505') {
+            return res.status(400).json({ error: 'Category with this name already exists.' });
+        }
+        
+        res.status(500).json({ error: 'Failed to create category.', details: err.message });
+    }
+};
+
+// UPDATE CATEGORY
+exports.updateCategory = async (req, res) => {
+    const categoryId = req.params.categoryId;
+    const { category_name, description } = req.body;
+    
+    if (!category_name || category_name.trim().length === 0) {
+        return res.status(400).json({ error: 'Category name cannot be empty.' });
+    }
+
+    try {
+        const result = await pool.query(`
+            UPDATE categories 
+            SET 
+                category_name = $1,
+                description = $2
+            WHERE category_id = $3
+        `, [category_name.trim(), description || null, categoryId]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Category not found.' });
+        }
+
+        res.status(200).json({ message: 'Category updated successfully.' });
+
+    } catch (err) {
+        console.error('Error updating category:', err.message);
+        
+        // Handle unique constraint violation
+        if (err.code === '23505') {
+            return res.status(400).json({ error: 'Category with this name already exists.' });
+        }
+        
+        res.status(500).json({ error: 'Failed to update category.', details: err.message });
+    }
+};
+
+// DELETE CATEGORY
+exports.deleteCategory = async (req, res) => {
+    const categoryId = req.params.categoryId;
+
+    try {
+        // PostgreSQL handles the cascade/set null automatically based on schema
+        // Our schema has ON DELETE SET NULL for posts.category_id
+        const result = await pool.query(`
+            DELETE FROM categories 
+            WHERE category_id = $1
+        `, [categoryId]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Category not found.' });
+        }
+
+        res.status(200).json({ 
+            message: 'Category deleted successfully, and associated posts were unassigned.' 
+        });
+
+    } catch (err) {
+        console.error('Error deleting category:', err.message);
+        res.status(500).json({ error: 'Failed to delete category.', details: err.message });
+    }
+};
+

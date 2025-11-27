@@ -1,24 +1,20 @@
-const { poolPromise, sql } = require('../db');
+const { pool } = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-// normally 10 but using 12 for modern recommendations
 const saltRounds = 12;
-
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // GET ALL USERS
 exports.getAllUsers = async (req, res) => {
     try {
-        const pool = await poolPromise;
-
-        const resultSet = await pool.request().query(`
+        const result = await pool.query(`
             SELECT user_id, username, display_name, created_at 
             FROM users 
-            ORDER BY created_at DESC;
+            ORDER BY created_at DESC
         `);
 
-        res.status(200).json(resultSet.recordset);
+        res.status(200).json(result.rows);
 
     } catch (err) {
         console.error('Error fetching users:', err.message);
@@ -29,29 +25,31 @@ exports.getAllUsers = async (req, res) => {
 // REGISTER USER
 exports.registerUser = async (req, res) => {
     const { username, email, password, display_name = '', bio = '' } = req.body;
-    let hashedPassword;
 
     try {
-        const pool = await poolPromise;
-
-        hashedPassword = await bcrypt.hash(password, saltRounds);
-
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
         const finalDisplayName = display_name.trim() || username;
 
-        await pool.request()
-            .input('Username', sql.VarChar(50), username)
-            .input('Email', sql.VarChar(100), email)
-            .input('PasswordHash', sql.VarChar(255), hashedPassword)
-            .input('DisplayName', sql.NVarChar(100), finalDisplayName)
-            .input('Bio', sql.NVarChar(255), bio)
-            .query(`
-                INSERT INTO users (username, email, password_hash, display_name, bio)
-                VALUES (@Username, @Email, @PasswordHash, @DisplayName, @Bio)
-            `);
+        await pool.query(`
+            INSERT INTO users (username, email, password_hash, display_name, bio)
+            VALUES ($1, $2, $3, $4, $5)
+        `, [username, email, hashedPassword, finalDisplayName, bio]);
 
         res.status(201).json({ message: 'User registered.' });
+        
     } catch (err) {
         console.error('Registration failed:', err.message);
+        
+        // Handle unique constraint violations
+        if (err.code === '23505') { // PostgreSQL unique violation code
+            if (err.constraint?.includes('username')) {
+                return res.status(400).json({ error: 'Username already exists.' });
+            }
+            if (err.constraint?.includes('email')) {
+                return res.status(400).json({ error: 'Email already exists.' });
+            }
+        }
+        
         res.status(500).json({ error: 'Registration failed.' });
     }
 };
@@ -65,27 +63,29 @@ exports.loginUser = async (req, res) => {
     }
 
     try {
-        const pool = await poolPromise;
+        const result = await pool.query(`
+            SELECT user_id, username, password_hash, role
+            FROM users 
+            WHERE email = $1 OR username = $1
+        `, [identifier]);
 
-        const result = await pool.request()
-            .input('Identifier', sql.VarChar(100), identifier)
-            .query(`
-                SELECT user_id, username, password_hash 
-                FROM users 
-                WHERE email = @Identifier OR username = @Identifier
-            `);
-
-        const user = result.recordset[0];
+        const user = result.rows[0];
 
         if (!user) {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
         const passwordMatch = await bcrypt.compare(password, user.password_hash);
-        if (!passwordMatch) return res.status(401).json({ message: 'Invalid credentials.' });
+        if (!passwordMatch) {
+            return res.status(401).json({ message: 'Invalid credentials.' });
+        }
 
         const role = user.role || 'user';
-        const token = jwt.sign({ user_id: user.user_id, username: user.username, role: role }, JWT_SECRET, { expiresIn: '1d' });
+        const token = jwt.sign(
+            { user_id: user.user_id, username: user.username, role: role }, 
+            JWT_SECRET, 
+            { expiresIn: '1d' }
+        );
 
         res.status(200).json({
             message: 'Login successful.',
@@ -101,24 +101,26 @@ exports.loginUser = async (req, res) => {
     }
 };
 
-// dunno if it works havent tested
+// GET CURRENT USER
 exports.getCurrentUser = async (req, res) => {
     const userId = req.user.user_id;
 
     try {
-        const pool = await poolPromise;
-        const result = await pool.request()
-            .input('UserId', sql.Int, userId)
-            .query(`SELECT user_id, username, display_name, bio FROM users WHERE user_id = @UserId`);
+        const result = await pool.query(`
+            SELECT user_id, username, display_name, bio 
+            FROM users 
+            WHERE user_id = $1
+        `, [userId]);
 
-        if (!result.recordset[0]) {
+        if (!result.rows[0]) {
             return res.status(404).json({ error: 'User not found.' });
         }
 
-        res.status(200).json(result.recordset[0]);
+        res.status(200).json(result.rows[0]);
 
     } catch (err) {
         console.error('Error fetching current user:', err.message);
         res.status(500).json({ error: 'Failed to retrieve profile.' });
     }
 };
+
