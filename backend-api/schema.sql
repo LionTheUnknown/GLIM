@@ -21,7 +21,8 @@ CREATE TABLE users (
     display_name VARCHAR(100),
     bio TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    role VARCHAR(20) DEFAULT 'user'
 );
 
 -- Index for faster lookups
@@ -103,9 +104,9 @@ CREATE INDEX idx_reactions_comment_id ON reactions(comment_id);
 -- 6. SEED DATA - Sample Users
 -- ============================================
 INSERT INTO users (username, email, password_hash, display_name, bio) VALUES
-('Alice', 'alice@example.com', '$2b$12$example_hash_1', 'Alice Wonderland', 'Tech enthusiast and blogger'),
-('Bob', 'bob@example.com', '$2b$12$example_hash_2', 'Bob Builder', 'Cloud computing specialist'),
-('Charlie', 'charlie@example.com', '$2b$12$example_hash_3', 'Charlie Chaplin', 'Database administrator');
+('Alice', 'alice@example.com', '$2b$12$example_hash_1', 'Alice Wonderland', 'Tech enthusiast and blogger', 'user'),
+('Bob', 'bob@example.com', '$2b$12$example_hash_2', 'Bob Builder', 'Cloud computing specialist', 'user'),
+('Charlie', 'charlie@example.com', '$2b$12$example_hash_3', 'Charlie Chaplin', 'Database administrator', 'user');
 
 -- ============================================
 -- 7. SEED DATA - Categories
