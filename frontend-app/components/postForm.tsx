@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, ChangeEvent, FormEvent, ReactElement } from 'react'
+import { useState, ChangeEvent, FormEvent, ReactElement, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import api from '@/utils/api'
+import { isAuthenticated } from '@/utils/auth'
 
 interface PostFormProps {
     onPostCreated: () => void
@@ -11,6 +12,7 @@ interface PostFormProps {
 
 export default function PostForm({ onPostCreated }: PostFormProps): ReactElement {
     const router = useRouter();
+    const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [formData, setFormData] = useState({
         categoryId: '',
         contentText: '',
@@ -18,6 +20,10 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
     })
     const [error, setError] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+    useEffect(() => {
+        setIsLoggedIn(isAuthenticated())
+    }, [])
 
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target
@@ -28,6 +34,11 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
         e.preventDefault()
         setError(null)
         setSuccessMessage(null)
+
+        if (!isAuthenticated()) {
+            router.push('/login')
+            return
+        }
 
         if (!formData.contentText.trim()) {
             return setError('Please type out the full content of the post.')
@@ -90,7 +101,8 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
                         required
                         rows={4}
                         className="textarea"
-                        placeholder="Share your thoughts..."
+                        placeholder={isLoggedIn ? "Share your thoughts..." : "Please log in to create a post"}
+                        disabled={!isLoggedIn}
                     />
                 </div>
 
@@ -104,6 +116,7 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
                         onChange={handleChange}
                         className="input"
                         placeholder="e.g., 1 or leave blank"
+                        disabled={!isLoggedIn}
                     />
                 </div>
 
@@ -117,11 +130,17 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
                         onChange={handleChange}
                         className="input"
                         placeholder="URL to an image or video"
+                        disabled={!isLoggedIn}
                     />
                 </div>
 
-                <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                    Post
+                <button 
+                    type="submit" 
+                    className="btn btn-primary" 
+                    style={{ width: '100%' }}
+                    disabled={!isLoggedIn}
+                >
+                    {isLoggedIn ? 'Post' : 'Log in to Post'}
                 </button>
             </form>
 

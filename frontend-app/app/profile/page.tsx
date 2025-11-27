@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/utils/api';
+import { isAuthenticated } from '@/utils/auth';
 
 interface UserProfile {
     user_id: number;
@@ -18,9 +19,8 @@ export default function ProfilePage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            router.push('/login');
+        if (!isAuthenticated()) {
+            setLoading(false);
             return;
         }
 
@@ -38,6 +38,35 @@ export default function ProfilePage() {
 
         fetchProfile();
     }, [router]);
+
+    if (!isAuthenticated()) {
+        return (
+            <div className="page-container">
+                <div className="card profile-card">
+                    <div className="profile-header">
+                        <h1 className="profile-name">Profile</h1>
+                        <p className="profile-username" style={{ marginBottom: '2rem' }}>
+                            Please log in to view your profile
+                        </p>
+                    </div>
+                    <div className="profile-actions">
+                        <button
+                            onClick={() => router.push('/login')}
+                            className="btn btn-primary profile-action-btn"
+                        >
+                            Log In
+                        </button>
+                        <button
+                            onClick={() => router.push('/register')}
+                            className="btn btn-secondary profile-action-btn"
+                        >
+                            Sign Up
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
