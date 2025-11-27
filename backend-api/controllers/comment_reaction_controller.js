@@ -50,7 +50,6 @@ exports.createCommentReaction = async (req, res) => {
     }
 
     try {
-        // Check if comment exists and belongs to post
         const commentCheck = await pool.query(`
             SELECT 1 FROM comments
             WHERE comment_id = $1 AND post_id = $2
@@ -60,7 +59,6 @@ exports.createCommentReaction = async (req, res) => {
             return res.status(404).json({ error: 'Comment not found for the given post.' });
         }
 
-        // Check if reaction already exists
         const checkResult = await pool.query(`
             SELECT 1 FROM reactions 
             WHERE user_id = $1 
@@ -72,7 +70,6 @@ exports.createCommentReaction = async (req, res) => {
             return res.status(409).json({ error: 'Conflict: Reaction already exists. Use PUT to update.' });
         }
 
-        // Insert new reaction
         await pool.query(`
             INSERT INTO reactions (user_id, post_id, comment_id, reaction_type, created_at)
             VALUES ($1, NULL, $2, $3, CURRENT_TIMESTAMP)
@@ -159,7 +156,6 @@ exports.getCommentReactionCounts = async (req, res) => {
     }
 
     try {
-        // Check if comment exists for this post
         const commentCheck = await pool.query(`
             SELECT 1 FROM comments
             WHERE comment_id = $1 AND post_id = $2
@@ -169,7 +165,6 @@ exports.getCommentReactionCounts = async (req, res) => {
             return res.status(404).json({ error: 'Comment not found for this post.' });
         }
 
-        // Get reaction counts
         const result = await pool.query(`
             SELECT 
                 COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS like_count,
@@ -191,7 +186,7 @@ exports.getCommentReactionCounts = async (req, res) => {
     }
 };
 
-// HANDLE COMMENT REACTION (Smart toggle/update)
+// HANDLE COMMENT REACTION
 exports.handleCommentReaction = async (req, res) => {
     const { postId, commentId } = req.params;
     const userId = req.user.user_id;
@@ -202,7 +197,6 @@ exports.handleCommentReaction = async (req, res) => {
     }
 
     try {
-        // Get existing reaction
         const existing = await pool.query(`
             SELECT reaction_type 
             FROM reactions 
@@ -212,15 +206,12 @@ exports.handleCommentReaction = async (req, res) => {
 
         const currentReaction = existing.rows[0]?.reaction_type || null;
         
-        // Toggle: If same reaction, delete it
         if (currentReaction === reaction_type) {
             return exports.deleteCommentReaction(req, res);
         }
-        // Update: If different reaction exists
         else if (currentReaction !== null && currentReaction !== reaction_type) {
             return exports.updateCommentReaction(req, res);
         }
-        // Create: If no reaction exists
         else if (currentReaction === null) {
             return exports.createCommentReaction(req, res);
         }

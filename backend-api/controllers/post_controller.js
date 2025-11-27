@@ -93,13 +93,11 @@ exports.deletePost = async (req, res) => {
     }
 
     try {
-        // Delete post reactions first (foreign key constraint)
         await pool.query(`
             DELETE FROM reactions
             WHERE post_id = $1 AND comment_id IS NULL
         `, [postId]);
 
-        // Delete the post
         const result = await pool.query(`
             DELETE FROM posts
             WHERE post_id = $1 AND author_id = $2
@@ -147,7 +145,6 @@ const formatPost = (post, reactionCounts, userReactionType) => {
 // HELPER: Fetch post metadata (reactions)
 const fetchPostMetadata = async (postId, userId) => {
     try {
-        // Get reaction counts
         const countsResult = await pool.query(`
             SELECT 
                 COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS like_count,
@@ -162,7 +159,6 @@ const fetchPostMetadata = async (postId, userId) => {
             dislike_count: parseInt(record.dislike_count) || 0
         };
 
-        // Get user's reaction if logged in
         let userReaction = null;
         if (userId) {
             const userResult = await pool.query(`

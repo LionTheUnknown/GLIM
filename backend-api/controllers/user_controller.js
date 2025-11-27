@@ -40,8 +40,7 @@ exports.registerUser = async (req, res) => {
     } catch (err) {
         console.error('Registration failed:', err.message);
         
-        // Handle unique constraint violations
-        if (err.code === '23505') { // PostgreSQL unique violation code
+        if (err.code === '23505') {
             if (err.constraint?.includes('username')) {
                 return res.status(400).json({ error: 'Username already exists.' });
             }

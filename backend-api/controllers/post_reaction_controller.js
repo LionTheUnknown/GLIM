@@ -15,7 +15,6 @@ exports.getPostReaction = async (req, res) => {
     }
 
     try {
-        // Check if post exists
         const postCheck = await pool.query(
             'SELECT 1 FROM posts WHERE post_id = $1',
             [postId]
@@ -25,7 +24,6 @@ exports.getPostReaction = async (req, res) => {
             return res.status(404).json({ error: 'Post not found.' });
         }
 
-        // Get user's reaction
         const result = await pool.query(`
             SELECT reaction_type 
             FROM reactions 
@@ -60,7 +58,6 @@ exports.createPostReaction = async (req, res) => {
     }
 
     try {
-        // Check if post exists
         const postCheck = await pool.query(
             'SELECT 1 FROM posts WHERE post_id = $1',
             [postId]
@@ -70,7 +67,6 @@ exports.createPostReaction = async (req, res) => {
             return res.status(404).json({ error: 'Post not found.' });
         }
 
-        // Check if reaction already exists
         const checkResult = await pool.query(`
             SELECT 1 FROM reactions
             WHERE user_id = $1
@@ -83,7 +79,6 @@ exports.createPostReaction = async (req, res) => {
             return res.status(409).json({ error: 'Conflict: Reaction already exists. Use PUT to update.' });
         }
 
-        // Insert new reaction
         await pool.query(`
             INSERT INTO reactions (user_id, post_id, reaction_type, created_at)
             VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
@@ -175,7 +170,6 @@ exports.getPostReactionCounts = async (req, res) => {
     }
     
     try {
-        // Check if post exists
         const postCheck = await pool.query(
             'SELECT 1 FROM posts WHERE post_id = $1',
             [postId]
@@ -185,7 +179,6 @@ exports.getPostReactionCounts = async (req, res) => {
             return res.status(404).json({ error: 'Post not found.' });
         }
 
-        // Get reaction counts
         const result = await pool.query(`
             SELECT 
                 COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS like_count,
@@ -207,7 +200,7 @@ exports.getPostReactionCounts = async (req, res) => {
     }
 };
 
-// HANDLE POST REACTION (Smart toggle/update)
+// HANDLE POST REACTION
 exports.handlePostReaction = async (req, res) => {
     const postId = req.params?.postId;
     const userId = req.user.user_id;
@@ -218,7 +211,6 @@ exports.handlePostReaction = async (req, res) => {
     }
 
     try {
-        // Get existing reaction
         const existing = await pool.query(`
             SELECT reaction_type 
             FROM reactions 
@@ -228,15 +220,12 @@ exports.handlePostReaction = async (req, res) => {
 
         const currentReaction = existing.rows[0]?.reaction_type || null;
         
-        // Toggle: If same reaction, delete it
         if (currentReaction === reaction_type) {
             return exports.deletePostReaction(req, res);
         }
-        // Update: If different reaction exists
         else if (currentReaction !== null && currentReaction !== reaction_type) {
             return exports.updatePostReaction(req, res);
         }
-        // Create: If no reaction exists
         else if (currentReaction === null) {
             return exports.createPostReaction(req, res);
         }

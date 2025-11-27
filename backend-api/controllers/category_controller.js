@@ -78,7 +78,6 @@ exports.createCategory = async (req, res) => {
     } catch (err) {
         console.error('Error creating category:', err.message);
         
-        // Handle unique constraint violation
         if (err.code === '23505') {
             return res.status(400).json({ error: 'Category with this name already exists.' });
         }
@@ -114,7 +113,6 @@ exports.updateCategory = async (req, res) => {
     } catch (err) {
         console.error('Error updating category:', err.message);
         
-        // Handle unique constraint violation
         if (err.code === '23505') {
             return res.status(400).json({ error: 'Category with this name already exists.' });
         }
@@ -128,8 +126,6 @@ exports.deleteCategory = async (req, res) => {
     const categoryId = req.params.categoryId;
 
     try {
-        // PostgreSQL handles the cascade/set null automatically based on schema
-        // Our schema has ON DELETE SET NULL for posts.category_id
         const result = await pool.query(`
             DELETE FROM categories 
             WHERE category_id = $1

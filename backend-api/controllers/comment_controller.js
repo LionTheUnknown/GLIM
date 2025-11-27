@@ -21,7 +21,6 @@ exports.createComment = async (req, res) => {
     }
 
     try {
-        // Check if post exists
         const postCheck = await pool.query(
             'SELECT post_id FROM posts WHERE post_id = $1',
             [postId]
@@ -31,7 +30,6 @@ exports.createComment = async (req, res) => {
             return res.status(404).json({ error: 'Post not found.' });
         }
 
-        // Check if parent comment exists and belongs to the same post
         if (parentId != null) {
             const parentCheck = await pool.query(
                 'SELECT comment_id, post_id FROM comments WHERE comment_id = $1',
@@ -50,7 +48,6 @@ exports.createComment = async (req, res) => {
             }
         }
 
-        // Insert the comment and return the created data
         const insertResult = await pool.query(`
             INSERT INTO comments (post_id, author_id, content_text, parent_comment_id)
             VALUES ($1, $2, $3, $4)
@@ -182,7 +179,6 @@ exports.getCommentsByPost = async (req, res) => {
     }
 
     try {
-        // Check if post exists
         const postCheck = await pool.query(
             'SELECT 1 FROM posts WHERE post_id = $1',
             [postId]
@@ -192,7 +188,6 @@ exports.getCommentsByPost = async (req, res) => {
             return res.status(404).json({ error: 'Post not found.' });
         }
 
-        // Get all comments for the post
         const result = await pool.query(`
             SELECT c.comment_id, c.post_id, c.content_text, c.parent_comment_id,
                 u.display_name AS author_name, 
