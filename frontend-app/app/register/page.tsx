@@ -67,11 +67,11 @@ const RegisterPage = () => {
     };
 
     return (
-        <div className="auth-container" style={{ position: 'relative' }}>
-            <div className="auth-card" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="auth-container">
+            <div className="auth-card">
                 <h2 className="auth-title">Create Your Account</h2>
                 
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <form onSubmit={handleSubmit} className="auth-form">
                     <div className="form-group">
                         <label htmlFor="username" className="label">Username</label>
                         <input 
@@ -126,14 +126,13 @@ const RegisterPage = () => {
                     </div>
                     <button 
                         type="submit" 
-                        className="btn btn-primary"
-                        style={{ width: '100%', marginTop: '0.5rem' }}
+                        className="btn btn-primary auth-submit-btn"
                     >
                         Register
                     </button>
                 </form>
-                {message && <p className="success-message" style={{ marginTop: '1rem', textAlign: 'center' }}>{message}</p>}
-                {error && <p className="error-message" style={{ marginTop: '1rem', textAlign: 'center' }}>Error: {error}</p>}
+                {message && <p className="success-message auth-message">{message}</p>}
+                {error && <p className="error-message auth-message">Error: {error}</p>}
             </div>
         </div>
     );

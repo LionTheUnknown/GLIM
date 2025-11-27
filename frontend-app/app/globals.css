@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "../styles/theme.css";
 @import "../styles/components.css";
+@import "../styles/pages/home.css";
+@import "../styles/pages/auth.css";
+@import "../styles/pages/profile.css";
+@import "../styles/pages/post-detail.css";
+@import "../styles/pages/comment-detail.css";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));

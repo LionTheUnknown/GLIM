@@ -1,0 +1,13 @@
+.post-detail-card {
+  margin-bottom: 2rem;
+}
+
+.loading-text {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.error-text {
+  text-align: center;
+}
+

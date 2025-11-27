@@ -38,7 +38,7 @@ const HomePage = () => {
     if (loading) {
         return (
             <div className="page-container">
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '1.125rem' }}>
+                <p className="loading-text">
                     Loading posts...
                 </p>
             </div>
@@ -48,7 +48,7 @@ const HomePage = () => {
     if (error) {
         return (
             <div className="page-container">
-                <p className="error-message" style={{ textAlign: 'center', fontSize: '1.125rem' }}>
+                <p className="error-message error-text">
                     Error: {error}
                 </p>
             </div>
@@ -58,48 +58,28 @@ const HomePage = () => {
     if (posts.length === 0) {
         return (
             <div className="page-container">
-                <h1 style={{ 
-                    fontSize: '2rem', 
-                    fontWeight: '700', 
-                    marginBottom: '2rem',
-                    background: 'linear-gradient(135deg, var(--flame-gold), var(--flame-orange))',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text'
-                }}>
+                <h1 className="empty-posts-title">
                     Latest Posts
                 </h1>
-                <PostForm onPostCreated={fetchPosts} />
-                <p style={{ 
-                    padding: '2rem', 
-                    border: '1px dashed var(--border)', 
-                    color: 'var(--text-muted)', 
-                    textAlign: 'center', 
-                    borderRadius: '8px', 
-                    marginTop: '2rem',
-                    background: 'var(--bg-card)'
-                }}>
-                    No posts found. Start posting!
-                </p>
+                <div className="home-content">
+                    <PostForm onPostCreated={fetchPosts} />
+                    <p className="empty-posts-message">
+                        No posts found. Start posting!
+                    </p>
+                </div>
             </div>
         );
     }
 
     return (
         <div className="page-container">
-            <h1 style={{ 
-                fontSize: '2rem', 
-                fontWeight: '700', 
-                marginBottom: '1.5rem',
-                background: 'linear-gradient(135deg, var(--flame-gold), var(--flame-orange))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-            }}>
-                Latest Posts
+            <h1 className="home-title">
+                GLIM
             </h1>
-            <PostForm onPostCreated={fetchPosts} />
-            <PostList posts={posts} />
+            <div className="home-content">
+                <PostForm onPostCreated={fetchPosts} />
+                <PostList posts={posts} />
+            </div>
         </div>
     );
 };

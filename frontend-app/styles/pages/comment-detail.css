@@ -1,0 +1,49 @@
+.comment-detail-card {
+  margin-bottom: 2rem;
+}
+
+.comment-detail-main {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.comment-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.comment-detail-author {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.comment-detail-date {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.comment-detail-content {
+  color: var(--text-primary);
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+.comment-detail-replies-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.loading-text {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.error-text {
+  text-align: center;
+}
+

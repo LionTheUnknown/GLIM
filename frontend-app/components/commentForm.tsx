@@ -57,15 +57,7 @@ export const CommentForm = ({ postId, parentCommentId, onCommentCreated, onClose
     return (
         <form 
             onSubmit={handleSubmit} 
-            style={{ 
-                marginTop: '1rem', 
-                padding: '1rem', 
-                background: 'rgba(31, 31, 31, 0.6)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                borderRadius: '8px', 
-                border: '1px solid rgba(42, 42, 42, 0.5)' 
-            }}
+            className="comment-form"
         >
             <textarea
                 value={content}

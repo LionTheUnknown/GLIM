@@ -1,0 +1,25 @@
+.auth-container {
+  position: relative;
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.auth-message {
+  margin-top: 1rem;
+  text-align: center;
+}
+

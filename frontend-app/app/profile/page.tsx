@@ -42,7 +42,7 @@ export default function ProfilePage() {
     if (loading) {
         return (
             <div className="page-container">
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Loading profile...</p>
+                <p className="loading-text">Loading profile...</p>
             </div>
         );
     }
@@ -50,62 +50,41 @@ export default function ProfilePage() {
     if (error || !profile) {
         return (
             <div className="page-container">
-                <p className="error-message" style={{ textAlign: 'center' }}>{error || 'Profile not found'}</p>
+                <p className="error-message error-text">{error || 'Profile not found'}</p>
             </div>
         );
     }
 
     return (
         <div className="page-container">
-            <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
-                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <div style={{
-                        width: '100px',
-                        height: '100px',
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, var(--flame-orange), var(--flame-bright))',
-                        margin: '0 auto 1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '2.5rem',
-                        fontWeight: '700',
-                        color: 'white'
-                    }}>
+            <div className="card profile-card">
+                <div className="profile-header">
+                    <div className="profile-avatar">
                         {profile.username.charAt(0).toUpperCase()}
                     </div>
-                    <h1 style={{
-                        fontSize: '1.875rem',
-                        fontWeight: '700',
-                        marginBottom: '0.5rem',
-                        background: 'linear-gradient(135deg, var(--flame-gold), var(--flame-orange))',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text'
-                    }}>
+                    <h1 className="profile-name">
                         {profile.display_name || profile.username}
                     </h1>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                    <p className="profile-username">
                         @{profile.username}
                     </p>
                 </div>
 
                 {profile.bio && (
-                    <div style={{ marginBottom: '2rem' }}>
-                        <h2 style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                    <div className="profile-bio-section">
+                        <h2 className="profile-bio-label">
                             Bio
                         </h2>
-                        <p style={{ color: 'var(--text-primary)', lineHeight: '1.6' }}>
+                        <p className="profile-bio-text">
                             {profile.bio}
                         </p>
                     </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div className="profile-actions">
                     <button
                         onClick={() => router.push('/home')}
-                        className="btn btn-secondary"
-                        style={{ flex: 1 }}
+                        className="btn btn-secondary profile-action-btn"
                     >
                         Back to Feed
                     </button>
@@ -114,8 +93,7 @@ export default function ProfilePage() {
                             localStorage.removeItem('token');
                             router.push('/login');
                         }}
-                        className="btn btn-secondary"
-                        style={{ flex: 1 }}
+                        className="btn btn-secondary profile-action-btn"
                     >
                         Logout
                     </button>

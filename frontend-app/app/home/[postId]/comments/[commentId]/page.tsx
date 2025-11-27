@@ -70,7 +70,7 @@ export default function CommentPage({
     if (loading) {
         return (
             <div className="page-container">
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Loading Comment...</p>
+                <p className="loading-text">Loading Comment...</p>
             </div>
         );
     }
@@ -78,7 +78,7 @@ export default function CommentPage({
     if (error) {
         return (
             <div className="page-container">
-                <p className="error-message" style={{ textAlign: 'center' }}>Error: {error}</p>
+                <p className="error-message error-text">Error: {error}</p>
             </div>
         );
     }
@@ -86,32 +86,30 @@ export default function CommentPage({
     if (!commentData) {
         return (
             <div className="page-container">
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Comment Not Found.</p>
+                <p className="loading-text">Comment Not Found.</p>
             </div>
         );
     }
 
     return (
         <div className="page-container">
-            <div className="card" style={{ marginBottom: '2rem' }}>
-                {/* Main Comment Display */}
-                <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <span style={{ color: 'var(--accent)', fontWeight: '500' }}>
+            <div className="card comment-detail-card">
+                <div className="comment-detail-main">
+                    <div className="comment-detail-header">
+                        <span className="comment-detail-author">
                             {commentData.author_name || 'Anonymous'}
                         </span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                        <span className="comment-detail-date">
                             {new Date(commentData.created_at).toLocaleString()}
                         </span>
                     </div>
-                    <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem', lineHeight: '1.6' }}>
+                    <p className="comment-detail-content">
                         {commentData.content_text}
                     </p>
                 </div>
 
-                {/* Replies Section */}
                 <div>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '1rem' }}>
+                    <h2 className="comment-detail-replies-title">
                         Replies ({replies.length})
                     </h2>
                     <PostCommentsSection

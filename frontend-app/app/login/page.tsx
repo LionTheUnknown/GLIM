@@ -48,7 +48,6 @@ const LoginPage = () => {
 
             localStorage.setItem('token', token);
 
-            // Verify role extraction
             import('../../utils/auth').then(({ getUserRole }) => {
                 console.log('User Role:', getUserRole());
             });
@@ -71,7 +70,7 @@ const LoginPage = () => {
             <div className="auth-card">
                 <h2 className="auth-title">Login To Your Account</h2>
 
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <form onSubmit={handleSubmit} className="auth-form">
                     <div className="form-group">
                         <label htmlFor="identifier" className="label">Username or Email</label>
                         <input
@@ -98,12 +97,12 @@ const LoginPage = () => {
                             placeholder="Enter your password"
                         />
                     </div>
-                    <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
+                    <button type="submit" className="btn btn-primary auth-submit-btn">
                         Login
                     </button>
                 </form>
-                {message && <p className="success-message" style={{ marginTop: '1rem', textAlign: 'center' }}>{message}</p>}
-                {error && <p className="error-message" style={{ marginTop: '1rem', textAlign: 'center' }}>Error: {error}</p>}
+                {message && <p className="success-message auth-message">{message}</p>}
+                {error && <p className="error-message auth-message">Error: {error}</p>}
             </div>
         </div>
     );

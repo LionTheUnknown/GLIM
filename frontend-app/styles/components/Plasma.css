@@ -4,3 +4,34 @@
   height: 100%;
   overflow: hidden;
 }
+
+@keyframes plasma-forward {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    transform: translate(10%, 10%) scale(1.1);
+    filter: hue-rotate(30deg);
+  }
+  100% {
+    transform: translate(-10%, -10%) scale(0.9);
+    filter: hue-rotate(60deg);
+  }
+}
+
+@keyframes plasma-backward {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    transform: translate(-10%, -10%) scale(1.1);
+    filter: hue-rotate(-30deg);
+  }
+  100% {
+    transform: translate(10%, 10%) scale(0.9);
+    filter: hue-rotate(-60deg);
+  }
+}
+

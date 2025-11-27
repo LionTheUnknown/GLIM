@@ -42,7 +42,6 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
     }, [postId]);
 
     useEffect(() => {
-        // Check for token using the api utility logic or just localStorage
         const authToken = localStorage.getItem('token');
         setToken(authToken);
 
@@ -55,7 +54,6 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
             setLoadingPost(true);
 
             try {
-                // api client automatically adds the token header
                 const postRes = await api.get<PostWithReactions>(`/api/posts/${postId}`);
 
                 setPostData(postRes.data);
@@ -83,7 +81,7 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
     if (loadingPost) {
         return (
             <div className="page-container">
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Loading Post...</p>
+                <p className="loading-text">Loading Post...</p>
             </div>
         );
     }
@@ -91,7 +89,7 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
     if (error) {
         return (
             <div className="page-container">
-                <p className="error-message" style={{ textAlign: 'center' }}>Error: {error}</p>
+                <p className="error-message error-text">Error: {error}</p>
             </div>
         );
     }
@@ -99,14 +97,14 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
     if (!postData) {
         return (
             <div className="page-container">
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Post Not Found.</p>
+                <p className="loading-text">Post Not Found.</p>
             </div>
         );
     }
 
     return (
         <div className="page-container">
-            <div className="card" style={{ marginBottom: '2rem' }}>
+            <div className="card post-detail-card">
                 <HighlightedPost post={postData} />
                 <PostCommentsSection
                     postId={postData.post_id}

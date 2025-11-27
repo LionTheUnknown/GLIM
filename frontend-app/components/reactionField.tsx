@@ -61,46 +61,11 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
         }
     };
 
-    const getButtonStyle = (type: ReactionType) => {
-        const baseStyle: React.CSSProperties = {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.5rem 1rem',
-            borderRadius: '6px',
-            fontSize: '0.875rem',
-            fontWeight: '500',
-            cursor: isSubmitting ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s',
-            border: 'none'
-        };
-
-        if (userReaction === type) {
-            return {
-                ...baseStyle,
-                background: 'var(--accent)',
-                color: 'white'
-            };
-        }
-        return {
-            ...baseStyle,
-            background: 'var(--bg-secondary)',
-            color: 'var(--text-secondary)',
-            border: '1px solid var(--border)'
-        };
-    };
-
     return (
-        <div style={{ 
-            display: 'flex', 
-            gap: '0.75rem', 
-            borderTop: '1px solid var(--border)', 
-            paddingTop: '1rem', 
-            marginTop: '1rem' 
-        }}>
+        <div className="reaction-field">
             <button 
                 onClick={() => handleReaction('like')}
-                style={getButtonStyle('like')}
+                className={`reaction-btn ${userReaction === 'like' ? 'reaction-btn-active' : 'reaction-btn-inactive'}`}
                 disabled={isSubmitting}
             >
                 <ThumbsUp size={16} fill={userReaction === 'like' ? 'white' : 'none'} />
@@ -109,7 +74,7 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
 
             <button 
                 onClick={() => handleReaction('dislike')}
-                style={getButtonStyle('dislike')}
+                className={`reaction-btn ${userReaction === 'dislike' ? 'reaction-btn-active' : 'reaction-btn-inactive'}`}
                 disabled={isSubmitting}
             >
                 <ThumbsDown size={16} fill={userReaction === 'dislike' ? 'white' : 'none'} />

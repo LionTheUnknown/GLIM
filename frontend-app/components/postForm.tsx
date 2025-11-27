@@ -64,7 +64,7 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
     }
 
     return (
-        <div className="card" style={{ marginBottom: '2rem' }}>
+        <div className="card post-form-card" style={{ marginBottom: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)' }}>
                     Create New Post

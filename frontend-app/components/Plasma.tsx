@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import { Renderer, Program, Mesh, Triangle } from 'ogl';
-import '../styles/components.css';
 
 interface PlasmaProps {
   color?: string;

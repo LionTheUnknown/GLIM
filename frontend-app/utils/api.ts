@@ -9,7 +9,6 @@ const api = axios.create({
     },
 });
 
-// Request interceptor to add the auth token to every request
 api.interceptors.request.use(
     (config) => {
         if (typeof window !== 'undefined') {
@@ -25,14 +24,9 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor (optional, but good for global error handling)
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        // You could handle 401 (Unauthorized) here by redirecting to login
-        // if (error.response && error.response.status === 401) {
-        //     window.location.href = '/login';
-        // }
         return Promise.reject(error);
     }
 );

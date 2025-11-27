@@ -1,0 +1,52 @@
+.post-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.post-list-item {
+  display: block;
+  transition: transform 0.2s, opacity 0.2s;
+  text-decoration: none;
+}
+
+.post-list-item:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.post-card {
+  border: 1px solid rgba(42, 42, 42, 0.5);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(31, 31, 31, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.post-grid {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  min-height: 100px;
+}
+
+.post-author {
+  padding: 1rem;
+  border-right: 1px solid rgba(42, 42, 42, 0.5);
+  font-weight: 700;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 26, 26, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.post-content {
+  padding: 1rem;
+  color: white;
+  white-space: pre-wrap;
+}
+
