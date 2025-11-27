@@ -81,20 +81,32 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
 
 
     if (loadingPost) {
-        return <div className="text-white p-6">Loading Post...</div>;
+        return (
+            <div className="page-container">
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Loading Post...</p>
+            </div>
+        );
     }
 
     if (error) {
-        return <div className="text-red-400 p-6">Error: {error}</div>;
+        return (
+            <div className="page-container">
+                <p className="error-message" style={{ textAlign: 'center' }}>Error: {error}</p>
+            </div>
+        );
     }
 
     if (!postData) {
-        return <div className="text-white p-6">Post Not Found.</div>;
+        return (
+            <div className="page-container">
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Post Not Found.</p>
+            </div>
+        );
     }
 
     return (
-        <div className="container mx-auto p-4 max-w-3xl">
-            <div className="bg-neutral-900 border border-stone-600 rounded-lg p-6 shadow-xl mb-8">
+        <div className="page-container">
+            <div className="card" style={{ marginBottom: '2rem' }}>
                 <HighlightedPost post={postData} />
                 <PostCommentsSection
                     postId={postData.post_id}

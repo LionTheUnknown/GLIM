@@ -1,0 +1,43 @@
+/* Standard Page Wrapper */
+.pageWrapper {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  padding: 2rem 1rem;
+}
+
+.pageContainer {
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.pageTitle {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--flame-gold), var(--flame-orange));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 2rem;
+  text-align: center;
+  text-shadow: var(--glow-soft);
+}
+
+.pageSubtitle {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pageWrapper {
+    padding: 1rem 0.5rem;
+  }
+  
+  .pageTitle {
+    font-size: 2rem;
+  }
+}
+

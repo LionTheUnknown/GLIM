@@ -38,27 +38,68 @@ const HomePage = () => {
     }, []);
 
     if (loading) {
-        return <p className="p-5 text-white">Loading posts...</p>;
+        return (
+            <div className="page-container">
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '1.125rem' }}>
+                    Loading posts...
+                </p>
+            </div>
+        );
     }
 
     if (error) {
-        return <p className="p-5 text-red-500">Error: {error}</p>;
+        return (
+            <div className="page-container">
+                <p className="error-message" style={{ textAlign: 'center', fontSize: '1.125rem' }}>
+                    Error: {error}
+                </p>
+            </div>
+        );
     }
 
     if (posts.length === 0) {
         return (
-            <div className="p-5 max-w-3xl mx-auto">
-                <h1 className="text-xl font-bold mb-4 text-white">Latest Posts</h1>
+            <div className="page-container">
+                <h1 style={{ 
+                    fontSize: '2rem', 
+                    fontWeight: '700', 
+                    marginBottom: '2rem',
+                    background: 'linear-gradient(135deg, var(--flame-gold), var(--flame-orange))',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                }}>
+                    Latest Posts
+                </h1>
                 <PostForm onPostCreated={fetchPosts} />
-                <p className="p-5 border border-dashed border-stone-600 text-stone-400">No posts found. Start posting!</p>
+                <p style={{ 
+                    padding: '2rem', 
+                    border: '1px dashed var(--border)', 
+                    color: 'var(--text-muted)', 
+                    textAlign: 'center', 
+                    borderRadius: '8px', 
+                    marginTop: '2rem',
+                    background: 'var(--bg-card)'
+                }}>
+                    No posts found. Start posting!
+                </p>
             </div>
         );
     }
 
     return (
-        <div className="p-5 max-w-3xl mx-auto">
-            <h1 className="text-2xl font-bold mb-6 text-white">Latest Posts</h1>
-            <p className="text-gray-600 mb-6">Data fetched from: <code>{API_BASE_URL}/api/posts</code></p>
+        <div className="page-container">
+            <h1 style={{ 
+                fontSize: '2rem', 
+                fontWeight: '700', 
+                marginBottom: '1.5rem',
+                background: 'linear-gradient(135deg, var(--flame-gold), var(--flame-orange))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+            }}>
+                Latest Posts
+            </h1>
             <PostForm onPostCreated={fetchPosts} />
             <PostList posts={posts} />
         </div>

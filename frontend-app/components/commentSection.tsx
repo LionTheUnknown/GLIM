@@ -28,7 +28,15 @@ const CommentItem = ({ comment, postId, comments, token, fetchComments }: {
 
     return (
         <div className="mt-3">
-            <div className="p-3 bg-neutral-900 border border-stone-700 rounded-lg">
+            <div 
+                className="p-3 border rounded-lg"
+                style={{
+                    background: 'rgba(31, 31, 31, 0.6)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    borderColor: 'rgba(42, 42, 42, 0.5)',
+                }}
+            >
                 <p className="text-sm font-bold text-indigo-400">{comment.author_name}</p>
                 <p className="mt-1 text-sm text-white whitespace-pre-wrap">{comment.content_text}</p>
                 <div className="flex items-center text-xs text-stone-500 mt-2">
@@ -52,7 +60,12 @@ const CommentItem = ({ comment, postId, comments, token, fetchComments }: {
                 />
             )}
 
-            <div className="ml-6 border-l border-stone-700 pl-4">
+            <div 
+                className="ml-6 border-l pl-4"
+                style={{
+                    borderColor: 'rgba(42, 42, 42, 0.5)',
+                }}
+            >
                 {renderComments(comments, comment.comment_id, postId, token, fetchComments)}
             </div>
         </div>

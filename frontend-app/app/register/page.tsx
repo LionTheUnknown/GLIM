@@ -12,8 +12,7 @@ const RegisterPage = () => {
         username: '',
         email: '',
         password: '',
-        displayName: '',
-        bio: ''
+        confirmPassword: ''
     });
     const [message, setMessage] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -32,6 +31,10 @@ const RegisterPage = () => {
              return setError('Please fill in username, email, and password.');
         }
 
+        if (formData.password !== formData.confirmPassword) {
+            return setError('Passwords do not match.');
+        }
+
         try {
             const endpoint = `${API_BASE_URL}/api/users/register`;
             
@@ -39,10 +42,7 @@ const RegisterPage = () => {
             username: formData.username,
             email: formData.email,
             password: formData.password,
-            
-            display_name: formData.displayName.trim() || formData.username,
-            
-            bio: formData.bio 
+            display_name: formData.username
         };
 
             await axios.post(endpoint, payload);
@@ -67,13 +67,13 @@ const RegisterPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-neutral-950 p-4">
-            <div className="w-full max-w-md bg-neutral-900 shadow-2xl rounded-xl p-8 border border-neutral-700">
-                <h2 className="text-3xl font-extrabold text-white text-center mb-6">Create Your Account</h2>
+        <div className="auth-container" style={{ position: 'relative' }}>
+            <div className="auth-card" style={{ position: 'relative', zIndex: 1 }}>
+                <h2 className="auth-title">Create Your Account</h2>
                 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-neutral-300">Username (required):</label>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="form-group">
+                        <label htmlFor="username" className="label">Username</label>
                         <input 
                             type="text" 
                             id="username"
@@ -81,11 +81,12 @@ const RegisterPage = () => {
                             value={formData.username} 
                             onChange={handleChange} 
                             required 
-                            className="mt-1 block w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md shadow-sm placeholder-neutral-500 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="input"
+                            placeholder="Choose a username"
                         />
                     </div>
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-neutral-300">Email (required):</label>
+                    <div className="form-group">
+                        <label htmlFor="email" className="label">Email</label>
                         <input 
                             type="email" 
                             id="email"
@@ -93,11 +94,12 @@ const RegisterPage = () => {
                             value={formData.email} 
                             onChange={handleChange} 
                             required 
-                            className="mt-1 block w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md shadow-sm placeholder-neutral-500 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="input"
+                            placeholder="your.email@example.com"
                         />
                     </div>
-                    <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-neutral-300">Password (required):</label>
+                    <div className="form-group">
+                        <label htmlFor="password" className="label">Password</label>
                         <input 
                             type="password" 
                             id="password"
@@ -105,41 +107,33 @@ const RegisterPage = () => {
                             value={formData.password} 
                             onChange={handleChange} 
                             required 
-                            className="mt-1 block w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md shadow-sm placeholder-neutral-500 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                    </div>      
-                    <hr className="border-neutral-700 my-4" /> 
-                    <div>
-                        <label htmlFor="displayName" className="block text-sm font-medium text-neutral-300">Display Name (Optional):</label>
-                        <input 
-                            type="text" 
-                            id="displayName"
-                            name="displayName" 
-                            value={formData.displayName} 
-                            onChange={handleChange} 
-                            className="mt-1 block w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md shadow-sm placeholder-neutral-500 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="input"
+                            placeholder="Create a secure password"
                         />
                     </div>
-                    <div>
-                        <label htmlFor="bio" className="block text-sm font-medium text-neutral-300">Bio (Optional):</label>
-                        <textarea 
-                            id="bio"
-                            name="bio" 
-                            value={formData.bio} 
-                            onChange={handleChange}
-                            rows={3}
-                            className="mt-1 block w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md shadow-sm placeholder-neutral-500 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        ></textarea>
+                    <div className="form-group">
+                        <label htmlFor="confirmPassword" className="label">Confirm Password</label>
+                        <input 
+                            type="password" 
+                            id="confirmPassword"
+                            name="confirmPassword" 
+                            value={formData.confirmPassword} 
+                            onChange={handleChange} 
+                            required 
+                            className="input"
+                            placeholder="Confirm your password"
+                        />
                     </div>
                     <button 
                         type="submit" 
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150"
+                        className="btn btn-primary"
+                        style={{ width: '100%', marginTop: '0.5rem' }}
                     >
                         Register
                     </button>
                 </form>
-                {message && <p className="mt-4 text-center text-sm font-medium text-green-400">{message}</p>}
-                {error && <p className="mt-4 text-center text-sm font-medium text-red-400">Error: {error}</p>}
+                {message && <p className="success-message" style={{ marginTop: '1rem', textAlign: 'center' }}>{message}</p>}
+                {error && <p className="error-message" style={{ marginTop: '1rem', textAlign: 'center' }}>Error: {error}</p>}
             </div>
         </div>
     );

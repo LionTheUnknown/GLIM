@@ -55,30 +55,42 @@ export const CommentForm = ({ postId, parentCommentId, onCommentCreated, onClose
     };
 
     return (
-        <form onSubmit={handleSubmit} className="mt-4 p-3 bg-neutral-800 rounded-lg space-y-2">
+        <form 
+            onSubmit={handleSubmit} 
+            style={{ 
+                marginTop: '1rem', 
+                padding: '1rem', 
+                background: 'rgba(31, 31, 31, 0.6)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                borderRadius: '8px', 
+                border: '1px solid rgba(42, 42, 42, 0.5)' 
+            }}
+        >
             <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={2}
                 placeholder={parentCommentId ? "Reply to this comment..." : "Add a comment..."}
-                className="w-full p-2 bg-neutral-700 border border-stone-600 rounded-md text-white"
+                className="textarea"
                 disabled={loading}
             />
-            <div className="flex justify-end space-x-2">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.75rem' }}>
                 {onClose && (
-                    <button type="button" onClick={onClose} className="py-1 px-3 text-sm text-stone-300 hover:text-white transition duration-150">
+                    <button type="button" onClick={onClose} className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
                         Cancel
                     </button>
                 )}
                 <button
                     type="submit"
-                    className="py-1 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-md transition duration-150"
+                    className="btn btn-primary"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
                     disabled={loading}
                 >
                     {loading ? 'Posting...' : 'Submit Comment'}
                 </button>
             </div>
-            {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
+            {error && <p className="error-message" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>{error}</p>}
         </form>
     );
 }

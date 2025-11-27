@@ -61,35 +61,60 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
         }
     };
 
-    const getButtonClass = (type: ReactionType) => {
-        const baseClass = "flex items-center space-x-1 p-2 rounded-md transition-colors text-sm";
+    const getButtonStyle = (type: ReactionType) => {
+        const baseStyle: React.CSSProperties = {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem 1rem',
+            borderRadius: '6px',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            cursor: isSubmitting ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+            border: 'none'
+        };
+
         if (userReaction === type) {
-            return `${baseClass} bg-sky-600 text-white`;
+            return {
+                ...baseStyle,
+                background: 'var(--accent)',
+                color: 'white'
+            };
         }
-        return `${baseClass} bg-neutral-800 text-gray-400 hover:bg-neutral-700`;
+        return {
+            ...baseStyle,
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border)'
+        };
     };
 
     return (
-        <div className="flex space-x-3 border-t border-neutral-700 pt-3 mt-4 justify-start">
-            
+        <div style={{ 
+            display: 'flex', 
+            gap: '0.75rem', 
+            borderTop: '1px solid var(--border)', 
+            paddingTop: '1rem', 
+            marginTop: '1rem' 
+        }}>
             <button 
                 onClick={() => handleReaction('like')}
-                className={getButtonClass('like')}
+                style={getButtonStyle('like')}
                 disabled={isSubmitting}
             >
                 <ThumbsUp size={16} fill={userReaction === 'like' ? 'white' : 'none'} />
-                <span className="font-semibold">{counts.like_count}</span>
+                <span>{counts.like_count}</span>
             </button>
 
             <button 
                 onClick={() => handleReaction('dislike')}
-                className={getButtonClass('dislike')}
+                style={getButtonStyle('dislike')}
                 disabled={isSubmitting}
             >
                 <ThumbsDown size={16} fill={userReaction === 'dislike' ? 'white' : 'none'} />
-                <span className="font-semibold">{counts.dislike_count}</span>
+                <span>{counts.dislike_count}</span>
             </button>
-
         </div>
     );
 }

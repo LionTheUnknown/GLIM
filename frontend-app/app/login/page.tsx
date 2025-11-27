@@ -67,13 +67,13 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-neutral-950 p-4">
-            <div className="w-full max-w-md bg-neutral-900 shadow-2xl rounded-xl p-8 border border-neutral-700">
-                <h2 className="text-3xl font-extrabold text-white text-center mb-6">Login To Your Account</h2>
+        <div className="auth-container">
+            <div className="auth-card">
+                <h2 className="auth-title">Login To Your Account</h2>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label htmlFor="identifier" className="block text-sm font-medium text-neutral-300">Username:</label>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="form-group">
+                        <label htmlFor="identifier" className="label">Username or Email</label>
                         <input
                             type="text"
                             id="identifier"
@@ -81,11 +81,12 @@ const LoginPage = () => {
                             value={formData.identifier}
                             onChange={handleChange}
                             required
-                            className="mt-1 block w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md shadow-sm placeholder-neutral-500 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="input"
+                            placeholder="Enter your username or email"
                         />
                     </div>
-                    <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-neutral-300">Password:</label>
+                    <div className="form-group">
+                        <label htmlFor="password" className="label">Password</label>
                         <input
                             type="password"
                             id="password"
@@ -93,18 +94,16 @@ const LoginPage = () => {
                             value={formData.password}
                             onChange={handleChange}
                             required
-                            className="mt-1 block w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md shadow-sm placeholder-neutral-500 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="input"
+                            placeholder="Enter your password"
                         />
                     </div>
-                    <button
-                        type="submit"
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150"
-                    >
+                    <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
                         Login
                     </button>
                 </form>
-                {message && <p className="mt-4 text-center text-sm font-medium text-green-400">{message}</p>}
-                {error && <p className="mt-4 text-center text-sm font-medium text-red-400">Error: {error}</p>}
+                {message && <p className="success-message" style={{ marginTop: '1rem', textAlign: 'center' }}>{message}</p>}
+                {error && <p className="error-message" style={{ marginTop: '1rem', textAlign: 'center' }}>Error: {error}</p>}
             </div>
         </div>
     );

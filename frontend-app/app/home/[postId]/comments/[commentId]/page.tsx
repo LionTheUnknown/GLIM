@@ -68,40 +68,50 @@ export default function CommentPage({
     }, [postId, commentId, router]);
 
     if (loading) {
-        return <div className="text-white p-6">Loading Comment...</div>;
+        return (
+            <div className="page-container">
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Loading Comment...</p>
+            </div>
+        );
     }
 
     if (error) {
-        return <div className="text-red-400 p-6">Error: {error}</div>;
+        return (
+            <div className="page-container">
+                <p className="error-message" style={{ textAlign: 'center' }}>Error: {error}</p>
+            </div>
+        );
     }
 
     if (!commentData) {
-        return <div className="text-white p-6">Comment Not Found.</div>;
+        return (
+            <div className="page-container">
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Comment Not Found.</p>
+            </div>
+        );
     }
 
     return (
-        <div className="container mx-auto p-4 max-w-3xl">
-            <div className="bg-neutral-900 border border-stone-600 rounded-lg p-6 shadow-xl mb-8">
+        <div className="page-container">
+            <div className="card" style={{ marginBottom: '2rem' }}>
                 {/* Main Comment Display */}
-                <div className="mb-6 pb-6 border-b border-stone-700">
-                    <div className="flex items-start gap-3">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-blue-400 font-medium">
-                                    {commentData.author_name || 'Anonymous'}
-                                </span>
-                                <span className="text-gray-500 text-sm">
-                                    {new Date(commentData.created_at).toLocaleString()}
-                                </span>
-                            </div>
-                            <p className="text-white text-lg">{commentData.content_text}</p>
-                        </div>
+                <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <span style={{ color: 'var(--accent)', fontWeight: '500' }}>
+                            {commentData.author_name || 'Anonymous'}
+                        </span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                            {new Date(commentData.created_at).toLocaleString()}
+                        </span>
                     </div>
+                    <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem', lineHeight: '1.6' }}>
+                        {commentData.content_text}
+                    </p>
                 </div>
 
                 {/* Replies Section */}
-                <div className="mt-6">
-                    <h2 className="text-xl font-semibold text-white mb-4">
+                <div>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '1rem' }}>
                         Replies ({replies.length})
                     </h2>
                     <PostCommentsSection

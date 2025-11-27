@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, ChangeEvent, FormEvent, ReactElement } from 'react'
+import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import api from '@/utils/api'
 
@@ -9,6 +10,7 @@ interface PostFormProps {
 }
 
 export default function PostForm({ onPostCreated }: PostFormProps): ReactElement {
+    const router = useRouter();
     const [formData, setFormData] = useState({
         categoryId: '',
         contentText: '',
@@ -62,11 +64,24 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
     }
 
     return (
-        <div className="border border-stone-600 rounded-lg p-4 mb-8 bg-neutral-900 shadow-xl">
-            <h2 className="text-xl font-bold mb-4 text-white">Create New Post</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="text-white">
-                    <label htmlFor="contentText" className="block text-sm font-medium mb-1">Content Text (required):</label>
+        <div className="card" style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                    Create New Post
+                </h2>
+                <button
+                    onClick={() => router.push('/profile')}
+                    className="btn btn-secondary"
+                    type="button"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
+                >
+                    My Profile
+                </button>
+            </div>
+            
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="form-group">
+                    <label htmlFor="contentText" className="label">What's on your mind?</label>
                     <textarea
                         id="contentText"
                         name="contentText"
@@ -74,47 +89,44 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
                         onChange={handleChange}
                         required
                         rows={4}
-                        className="w-full p-2 bg-neutral-800 border border-stone-700 rounded-md focus:border-indigo-500 text-white"
-                        placeholder="What's on your mind? (Use Enter for new lines)"
+                        className="textarea"
+                        placeholder="Share your thoughts..."
                     />
                 </div>
 
-                <div className="text-white">
-                    <label htmlFor="categoryId" className="block text-sm font-medium mb-1">Category ID (Optional):</label>
+                <div className="form-group">
+                    <label htmlFor="categoryId" className="label">Category ID (optional)</label>
                     <input
                         type="text"
                         id="categoryId"
                         name="categoryId"
                         value={formData.categoryId}
                         onChange={handleChange}
-                        className="w-full p-2 bg-neutral-800 border border-stone-700 rounded-md focus:border-indigo-500 text-white"
+                        className="input"
                         placeholder="e.g., 1 or leave blank"
                     />
                 </div>
 
-                <div className="text-white">
-                    <label htmlFor="mediaUrl" className="block text-sm font-medium mb-1">Media URL (Optional):</label>
+                <div className="form-group">
+                    <label htmlFor="mediaUrl" className="label">Media URL (optional)</label>
                     <input
                         type="text"
                         id="mediaUrl"
                         name="mediaUrl"
                         value={formData.mediaUrl}
                         onChange={handleChange}
-                        className="w-full p-2 bg-neutral-800 border border-stone-700 rounded-md focus:border-indigo-500 text-white"
+                        className="input"
                         placeholder="URL to an image or video"
                     />
                 </div>
 
-                <button
-                    type="submit"
-                    className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-md transition duration-150"
-                >
+                <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
                     Post
                 </button>
             </form>
 
-            {error && <p className="mt-3 text-red-400 text-sm">Error: {error}</p>}
-            {successMessage && <p className="mt-3 text-green-400 text-sm">{successMessage}</p>}
+            {error && <p className="error-message" style={{ marginTop: '1rem' }}>Error: {error}</p>}
+            {successMessage && <p className="success-message" style={{ marginTop: '1rem' }}>{successMessage}</p>}
         </div>
     )
 }
