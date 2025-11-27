@@ -31,7 +31,7 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
     const fetchComments = useCallback(async () => {
         setLoadingComments(true);
         try {
-            const response = await api.get(`${API_BASE_URL}/posts/${postId}/comments`);
+            const response = await api.get(`${API_BASE_URL}/api/posts/${postId}/comments`);
             setComments(response.data);
         } catch (err) {
             console.error("Failed to load comments:", err);
@@ -56,7 +56,7 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
 
             try {
                 // api client automatically adds the token header
-                const postRes = await api.get<PostWithReactions>(`/posts/${postId}`);
+                const postRes = await api.get<PostWithReactions>(`/api/posts/${postId}`);
 
                 setPostData(postRes.data);
                 setError(null);

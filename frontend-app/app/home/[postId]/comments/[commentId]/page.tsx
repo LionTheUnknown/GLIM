@@ -29,7 +29,7 @@ export default function CommentPage({
     const fetchReplies = async () => {
         setLoadingReplies(true);
         try {
-            const response = await api.get(`${API_BASE_URL}/posts/${postId}/comments/${commentId}/replies`);
+            const response = await api.get(`${API_BASE_URL}/api/posts/${postId}/comments/${commentId}/replies`);
             setReplies(response.data);
         } catch (err) {
             console.error("Failed to load replies:", err);
@@ -51,7 +51,7 @@ export default function CommentPage({
         const loadCommentData = async () => {
             setLoading(true);
             try {
-                const response = await api.get<CommentWithReplies>(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`);
+                const response = await api.get<CommentWithReplies>(`${API_BASE_URL}/api/posts/${postId}/comments/${commentId}`);
                 setCommentData(response.data);
                 setError(null);
             } catch (err: unknown) {

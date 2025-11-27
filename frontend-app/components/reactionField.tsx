@@ -46,7 +46,7 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
         
         try {
             await axios.post(
-                `${API_BASE_URL}/posts/${postId}/reactions`,
+                `${API_BASE_URL}/api/posts/${postId}/reactions`,
                 { reaction_type: type },
                 { headers: { Authorization: `Bearer ${getToken()}` } }
             );

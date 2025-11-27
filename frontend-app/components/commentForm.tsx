@@ -31,7 +31,7 @@ export const CommentForm = ({ postId, parentCommentId, onCommentCreated, onClose
         setLoading(true);
 
         try {
-            const endpoint = `${API_BASE_URL}/posts/${postId}/comments`;
+            const endpoint = `${API_BASE_URL}/api/posts/${postId}/comments`;
             await axios.post(endpoint, {
                 content_text: content,
                 parent_comment_id: parentCommentId

@@ -33,7 +33,7 @@ const RegisterPage = () => {
         }
 
         try {
-            const endpoint = `${API_BASE_URL}/users/register`;
+            const endpoint = `${API_BASE_URL}/api/users/register`;
             
             const payload = {
             username: formData.username,

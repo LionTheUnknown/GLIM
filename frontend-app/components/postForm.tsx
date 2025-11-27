@@ -32,7 +32,7 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
         }
 
         try {
-            const endpoint = '/posts/createPost'
+            const endpoint = '/api/posts'
 
             const payload = {
                 content_text: formData.contentText,

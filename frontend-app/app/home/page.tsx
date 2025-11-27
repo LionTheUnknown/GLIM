@@ -17,7 +17,7 @@ const HomePage = () => {
     const fetchPosts = async () => {
         try {
             setError(null);
-            const response = await api.get<Posts>('/posts');
+            const response = await api.get<Posts>('/api/posts');
             setPosts(response.data);
         } catch (err: unknown) {
             let errorMessage: string = 'Failed to fetch posts. Check server connection.';
@@ -58,7 +58,7 @@ const HomePage = () => {
     return (
         <div className="p-5 max-w-3xl mx-auto">
             <h1 className="text-2xl font-bold mb-6 text-white">Latest Posts</h1>
-            <p className="text-gray-600 mb-6">Data fetched from: <code>{API_BASE_URL}/posts</code></p>
+            <p className="text-gray-600 mb-6">Data fetched from: <code>{API_BASE_URL}/api/posts</code></p>
             <PostForm onPostCreated={fetchPosts} />
             <PostList posts={posts} />
         </div>

@@ -30,7 +30,7 @@ const LoginPage = () => {
         }
 
         try {
-            const endpoint = `${API_BASE_URL}/users/login`;
+            const endpoint = `${API_BASE_URL}/api/users/login`;
 
             const payload = {
                 identifier: formData.identifier,
