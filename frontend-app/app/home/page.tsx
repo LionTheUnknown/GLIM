@@ -5,9 +5,7 @@ import axios, { AxiosError } from 'axios';
 import api from '@/utils/api';
 import { PostList } from '../../components/post-list';
 import PostForm from '../../components/postForm';
-import { Post, Posts } from '@/app/actions'
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { Posts } from '@/app/actions'
 
 const HomePage = () => {
     const [posts, setPosts] = useState<Posts>([]);

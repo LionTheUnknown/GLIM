@@ -1,7 +1,7 @@
 'use client'
 
 import { ReactElement, useState } from 'react'
-import { Post, Comment } from '@/app/actions' 
+import { Comment } from '@/app/actions' 
 import { CommentForm } from '@/components/commentForm'
 
 interface PostCommentsSectionProps {

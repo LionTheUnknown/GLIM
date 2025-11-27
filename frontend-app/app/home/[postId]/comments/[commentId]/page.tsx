@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/utils/api'
 import { Comment } from '@/app/actions'
@@ -26,7 +26,7 @@ export default function CommentPage({
     const [error, setError] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
 
-    const fetchReplies = async () => {
+    const fetchReplies = useCallback(async () => {
         setLoadingReplies(true);
         try {
             const response = await api.get(`${API_BASE_URL}/api/posts/${postId}/comments/${commentId}/replies`);
@@ -37,7 +37,7 @@ export default function CommentPage({
         } finally {
             setLoadingReplies(false);
         }
-    };
+    }, [postId, commentId]);
 
     useEffect(() => {
         const authToken = localStorage.getItem('token');
@@ -65,7 +65,7 @@ export default function CommentPage({
 
         loadCommentData();
         fetchReplies();
-    }, [postId, commentId, router]);
+    }, [postId, commentId, router, fetchReplies]);
 
     if (loading) {
         return (

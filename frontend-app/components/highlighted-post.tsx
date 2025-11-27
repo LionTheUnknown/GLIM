@@ -1,6 +1,7 @@
 'use client'
 
 import { ReactElement } from 'react'
+import Image from 'next/image'
 import { Post } from '@/app/actions' 
 import ReactionField from './reactionField';
 
@@ -23,9 +24,11 @@ export default function HighlightedPost({ post }: HighlightedPostProps): ReactEl
             </div>
             
             {post.media_url && (
-                <img 
+                <Image 
                     src={post.media_url} 
                     alt="Post Media" 
+                    width={800}
+                    height={400}
                     className="w-full max-h-96 object-contain rounded-md mb-6" 
                 />
             )}

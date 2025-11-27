@@ -1,6 +1,5 @@
 'use client'
 
-import { ReactNode } from 'react'
 import { Post } from '@/app/actions'
 
 export default function Message({ post }: { post: Post }) {

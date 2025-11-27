@@ -81,7 +81,7 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
             
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="form-group">
-                    <label htmlFor="contentText" className="label">What's on your mind?</label>
+                    <label htmlFor="contentText" className="label">What&apos;s on your mind?</label>
                     <textarea
                         id="contentText"
                         name="contentText"
