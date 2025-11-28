@@ -41,6 +41,28 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
         }
     }, [postId]);
 
+    const loadPostData = useCallback(async () => {
+        setLoadingPost(true);
+
+        try {
+            const postRes = await api.get<PostWithReactions>(`/api/posts/${postId}`);
+
+            setPostData(postRes.data);
+            setError(null);
+
+        } catch (err: unknown) {
+            console.error('Post load failed:', err);
+            if (axios.isAxiosError(err) && err.response?.status === 404) {
+                setError('Post not found (404).');
+            } else {
+                setError('Failed to load post details.');
+            }
+            setPostData(null);
+        } finally {
+            setLoadingPost(false);
+        }
+    }, [postId]);
+
     useEffect(() => {
         const authToken = localStorage.getItem('token');
         setToken(authToken);
@@ -50,32 +72,10 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
             return;
         }
 
-        const loadPostData = async () => {
-            setLoadingPost(true);
-
-            try {
-                const postRes = await api.get<PostWithReactions>(`/api/posts/${postId}`);
-
-                setPostData(postRes.data);
-                setError(null);
-
-            } catch (err: unknown) {
-                console.error('Initial post load failed:', err);
-                if (axios.isAxiosError(err) && err.response?.status === 404) {
-                    setError('Post not found (404).');
-                } else {
-                    setError('Failed to load post details.');
-                }
-                setPostData(null);
-            } finally {
-                setLoadingPost(false);
-            }
-        };
-
         loadPostData();
         fetchComments();
 
-    }, [postId, fetchComments, router]);
+    }, [postId, fetchComments, router, loadPostData]);
 
 
     if (loadingPost) {

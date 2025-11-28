@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, ChangeEvent, FormEvent, ReactElement, useEffect } from 'react'
+import { useState, ChangeEvent, FormEvent, ReactElement, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import api from '@/utils/api'
 import { isAuthenticated } from '@/utils/auth'
+import { Category } from '@/app/actions'
 
 interface PostFormProps {
     onPostCreated: () => void
@@ -18,14 +19,33 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
         contentText: '',
         mediaUrl: ''
     })
+    const [categories, setCategories] = useState<Category[]>([])
+    const [loadingCategories, setLoadingCategories] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-    useEffect(() => {
-        setIsLoggedIn(isAuthenticated())
+    const fetchCategories = useCallback(async () => {
+        try {
+            setLoadingCategories(true)
+            const response = await api.get<Category[]>('/api/categories')
+            setCategories(response.data)
+        } catch (err) {
+            console.error('Error fetching categories:', err)
+            // Don't show error to user - categories are optional
+        } finally {
+            setLoadingCategories(false)
+        }
     }, [])
 
-    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    useEffect(() => {
+        const authenticated = isAuthenticated()
+        setIsLoggedIn(authenticated)
+        if (authenticated) {
+            fetchCategories()
+        }
+    }, [fetchCategories])
+
+    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         setFormData(prev => ({ ...prev, [name]: value }))
     }
@@ -107,17 +127,24 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="categoryId" className="label">Category ID (optional)</label>
-                    <input
-                        type="text"
-                        id="categoryId"
-                        name="categoryId"
-                        value={formData.categoryId}
-                        onChange={handleChange}
-                        className="input"
-                        placeholder="e.g., 1 or leave blank"
-                        disabled={!isLoggedIn}
-                    />
+                    <label htmlFor="categoryId" className="label">Category (optional)</label>
+                    <div className="select-wrapper">
+                        <select
+                            id="categoryId"
+                            name="categoryId"
+                            value={formData.categoryId}
+                            onChange={handleChange}
+                            className="input"
+                            disabled={!isLoggedIn || loadingCategories}
+                        >
+                            <option value="">Select a category</option>
+                            {categories.map((category) => (
+                                <option key={category.category_id} value={category.category_id}>
+                                    {category.category_name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 <div className="form-group">

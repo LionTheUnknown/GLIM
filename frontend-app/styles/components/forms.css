@@ -11,7 +11,8 @@
 }
 
 .input,
-.textarea {
+.textarea,
+select.input {
   width: 100%;
   padding: 0.625rem 0.875rem;
   background: rgba(26, 26, 26, 0.5);
@@ -26,13 +27,63 @@
 }
 
 .input:focus,
-.textarea:focus {
+.textarea:focus,
+select.input:focus {
   border-color: var(--accent);
 }
 
 .input::placeholder,
 .textarea::placeholder {
   color: var(--text-muted);
+}
+
+.select-wrapper {
+  position: relative;
+  display: block;
+}
+
+.select-wrapper::after {
+  content: '';
+  position: absolute;
+  right: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--text-secondary);
+  pointer-events: none;
+  z-index: 1;
+  transition: border-top-color 0.2s;
+}
+
+.select-wrapper:has(select.input:disabled)::after {
+  border-top-color: var(--text-muted);
+  opacity: 0.5;
+}
+
+select.input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2.5rem;
+  cursor: pointer;
+}
+
+select.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+select.input:hover:not(:disabled) {
+  border-color: var(--border-hover);
+}
+
+select.input option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  padding: 0.5rem;
 }
 
 .textarea {

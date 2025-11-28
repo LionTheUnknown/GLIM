@@ -104,29 +104,29 @@ CREATE INDEX idx_reactions_comment_id ON reactions(comment_id);
 -- 6. SEED DATA - Sample Users
 -- ============================================
 INSERT INTO users (username, email, password_hash, display_name, bio) VALUES
-('Alice', 'alice@example.com', '$2b$12$example_hash_1', 'Alice Wonderland', 'Tech enthusiast and blogger', 'user'),
-('Bob', 'bob@example.com', '$2b$12$example_hash_2', 'Bob Builder', 'Cloud computing specialist', 'user'),
-('Charlie', 'charlie@example.com', '$2b$12$example_hash_3', 'Charlie Chaplin', 'Database administrator', 'user');
+('Alice', 'alice@example.com', '$2b$12$example_hash_1', 'Alice Wonderland', 'Tech enthusiast and blogger'),
+('Bob', 'bob@example.com', '$2b$12$example_hash_2', 'Bob Builder', 'Cloud computing specialist'),
+('Charlie', 'charlie@example.com', '$2b$12$example_hash_3', 'Charlie Chaplin', 'Database administrator');
 
 -- ============================================
 -- 7. SEED DATA - Categories
 -- ============================================
 INSERT INTO categories (category_name, description) VALUES
-('Technology', 'All things tech-related'),
-('Cloud Computing', 'Cloud services and infrastructure'),
-('Databases', 'Database management and SQL'),
-('Web Development', 'Frontend and backend development'),
-('DevOps', 'CI/CD, automation, and infrastructure');
+('General', 'General discussions and topics'),
+('Questions', 'Ask questions and get answers'),
+('News', 'Latest news and updates'),
+('Entertainment', 'Movies, music, games, and fun'),
+('Lifestyle', 'Health, food, travel, and daily life');
 
 -- ============================================
 -- 8. SEED DATA - Sample Posts
 -- ============================================
 INSERT INTO posts (author_id, category_id, content_text, created_at) VALUES
-(1, 1, 'Įvadas į technologijas - šiandien aptarsime naujas tendencijas!', CURRENT_TIMESTAMP),
-(2, 2, 'Debesų kompiuterijos privalumai yra neįkainojami verslo skalėje.', CURRENT_TIMESTAMP - INTERVAL '1 hour'),
-(3, 3, 'SQL Serverio apžvalga - nuo pradedančių iki ekspertų.', CURRENT_TIMESTAMP - INTERVAL '2 hours'),
-(1, 4, 'React vs Vue: kuris framework geresnis 2024 metais?', CURRENT_TIMESTAMP - INTERVAL '3 hours'),
-(2, 5, 'Docker konteineriai palengvina deployment procesą.', CURRENT_TIMESTAMP - INTERVAL '4 hours');
+(1, 1, 'Welcome to GLIM! Lets start some great discussions.', CURRENT_TIMESTAMP),
+(2, 2, 'How do you stay motivated on difficult days?', CURRENT_TIMESTAMP - INTERVAL '1 hour'),
+(3, 3, 'Interesting news article I read today - what are your thoughts?', CURRENT_TIMESTAMP - INTERVAL '2 hours'),
+(1, 4, 'Whats the best movie youve watched recently?', CURRENT_TIMESTAMP - INTERVAL '3 hours'),
+(2, 5, 'Sharing my favorite recipe for homemade bread!', CURRENT_TIMESTAMP - INTERVAL '4 hours');
 
 -- ============================================
 -- 9. SEED DATA - Sample Comments
@@ -187,4 +187,3 @@ INSERT INTO reactions (user_id, post_id, comment_id, reaction_type, created_at) 
 -- LEFT JOIN reactions r ON p.post_id = r.post_id AND r.comment_id IS NULL
 -- GROUP BY p.post_id, p.content_text
 -- ORDER BY p.post_id;
-

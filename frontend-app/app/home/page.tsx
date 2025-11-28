@@ -14,6 +14,7 @@ const HomePage = () => {
     const [posts, setPosts] = useState<Posts>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [mounted, setMounted] = useState<boolean>(false);
 
     const fetchPosts = async () => {
         try {
@@ -35,12 +36,23 @@ const HomePage = () => {
     };
 
     useEffect(() => {
+        setMounted(true);
         if (isAuthenticated()) {
             fetchPosts();
         } else {
             setLoading(false);
         }
     }, []);
+
+    if (!mounted || loading) {
+        return (
+            <div className="page-container">
+                <p className="loading-text">
+                    Loading posts...
+                </p>
+            </div>
+        );
+    }
 
     if (!isAuthenticated()) {
         return (
@@ -72,16 +84,6 @@ const HomePage = () => {
                         </div>
                     </div>
                 </div>
-            </div>
-        );
-    }
-
-    if (loading) {
-        return (
-            <div className="page-container">
-                <p className="loading-text">
-                    Loading posts...
-                </p>
             </div>
         );
     }

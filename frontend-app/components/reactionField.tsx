@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ThumbsUp, ThumbsDown } from 'lucide-react'; 
 
@@ -20,9 +20,22 @@ interface ReactionFieldProps {
 }
 
 export default function ReactionField({ postId, initialCounts, initialUserReaction }: ReactionFieldProps) {
-    const [counts, setCounts] = useState<ReactionCounts>(initialCounts);
-    const [userReaction, setUserReaction] = useState<UserReactionStatus>(initialUserReaction);
+    // Use props as source of truth, with optimistic updates during submission
+    const [optimisticCounts, setOptimisticCounts] = useState<ReactionCounts | null>(null);
+    const [optimisticReaction, setOptimisticReaction] = useState<UserReactionStatus | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Use optimistic values if available, otherwise use props from backend
+    const counts = optimisticCounts ?? initialCounts;
+    const userReaction = optimisticReaction !== null ? optimisticReaction : initialUserReaction;
+
+    // Reset optimistic state when props change (e.g., navigating back with fresh data)
+    useEffect(() => {
+        if (!isSubmitting) {
+            setOptimisticCounts(null);
+            setOptimisticReaction(null);
+        }
+    }, [initialCounts.like_count, initialCounts.dislike_count, initialUserReaction, isSubmitting]);
 
     const handleReaction = async (type: ReactionType) => {
         if (isSubmitting || !getToken()) return alert('Please log in to react.');
@@ -41,21 +54,29 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
             optimisticCounts[`${newReaction}_count` as keyof ReactionCounts] = optimisticCounts[`${newReaction}_count` as keyof ReactionCounts] + 1;
         }
 
-        setCounts(optimisticCounts);
-        setUserReaction(newReaction);
+        // Set optimistic state for immediate UI feedback
+        setOptimisticCounts(optimisticCounts);
+        setOptimisticReaction(newReaction);
         
         try {
-            await axios.post(
+            const response = await axios.post(
                 `${API_BASE_URL}/api/posts/${postId}/reactions`,
                 { reaction_type: type },
                 { headers: { Authorization: `Bearer ${getToken()}` } }
             );
 
+            // Use the updated state from backend response
+            if (response.data.reaction_counts && response.data.user_reaction_type !== undefined) {
+                setOptimisticCounts(response.data.reaction_counts);
+                setOptimisticReaction(response.data.user_reaction_type);
+            }
+            
         } catch (error) {
             console.error("Error toggling reaction:", error);
             alert('Failed to update reaction. Please try again.');
-            setCounts(initialCounts);
-            setUserReaction(initialUserReaction);
+            // Revert to props from backend on error
+            setOptimisticCounts(null);
+            setOptimisticReaction(null);
         } finally {
             setIsSubmitting(false);
         }
