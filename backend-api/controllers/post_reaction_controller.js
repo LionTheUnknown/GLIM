@@ -1,6 +1,5 @@
 const { pool } = require('../db');
 
-// HELPER: Fetch post reaction metadata (counts + user reaction)
 const fetchPostReactionMetadata = async (postId, userId) => {
     try {
         const countsResult = await pool.query(`

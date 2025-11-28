@@ -20,16 +20,13 @@ interface ReactionFieldProps {
 }
 
 export default function ReactionField({ postId, initialCounts, initialUserReaction }: ReactionFieldProps) {
-    // Use props as source of truth, with optimistic updates during submission
     const [optimisticCounts, setOptimisticCounts] = useState<ReactionCounts | null>(null);
     const [optimisticReaction, setOptimisticReaction] = useState<UserReactionStatus | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Use optimistic values if available, otherwise use props from backend
     const counts = optimisticCounts ?? initialCounts;
     const userReaction = optimisticReaction !== null ? optimisticReaction : initialUserReaction;
 
-    // Reset optimistic state when props change (e.g., navigating back with fresh data)
     useEffect(() => {
         if (!isSubmitting) {
             setOptimisticCounts(null);
@@ -54,7 +51,6 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
             optimisticCounts[`${newReaction}_count` as keyof ReactionCounts] = optimisticCounts[`${newReaction}_count` as keyof ReactionCounts] + 1;
         }
 
-        // Set optimistic state for immediate UI feedback
         setOptimisticCounts(optimisticCounts);
         setOptimisticReaction(newReaction);
         
@@ -65,7 +61,6 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
                 { headers: { Authorization: `Bearer ${getToken()}` } }
             );
 
-            // Use the updated state from backend response
             if (response.data.reaction_counts && response.data.user_reaction_type !== undefined) {
                 setOptimisticCounts(response.data.reaction_counts);
                 setOptimisticReaction(response.data.user_reaction_type);
@@ -74,7 +69,6 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
         } catch (error) {
             console.error("Error toggling reaction:", error);
             alert('Failed to update reaction. Please try again.');
-            // Revert to props from backend on error
             setOptimisticCounts(null);
             setOptimisticReaction(null);
         } finally {
