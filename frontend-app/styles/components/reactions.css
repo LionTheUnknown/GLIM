@@ -16,7 +16,8 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  border: none;
+  border: 1px solid transparent;
+  box-sizing: border-box;
 }
 
 .reaction-btn:disabled {
@@ -26,11 +27,12 @@
 .reaction-btn-active {
   background: var(--accent);
   color: white;
+  border-color: var(--accent);
 }
 
 .reaction-btn-inactive {
   background: var(--bg-secondary);
   color: var(--text-secondary);
-  border: 1px solid var(--border);
+  border-color: var(--border);
 }
 
