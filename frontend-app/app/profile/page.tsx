@@ -120,6 +120,7 @@ export default function ProfilePage() {
                     <button
                         onClick={() => {
                             localStorage.removeItem('token');
+                            localStorage.removeItem('refresh_token');
                             router.push('/login');
                         }}
                         className="btn btn-secondary profile-action-btn"

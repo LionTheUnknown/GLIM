@@ -11,14 +11,14 @@ const { pool } = require('./db');
 
 const cors = require('cors'); 
 
-// Parse CORS_ORIGIN environment variable (supports multiple origins)
+// Parse CORS_ORIGIN environment variable
 const allowedOrigins = process.env.CORS_ORIGIN 
     ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
     : ['http://localhost:3001'];
 
 const corsOptions = {
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
+        // Allow requests with no origin
         if (!origin) return callback(null, true);
         
         if (allowedOrigins.includes(origin)) {

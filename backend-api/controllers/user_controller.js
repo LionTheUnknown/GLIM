@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 
 const saltRounds = 12;
 const JWT_SECRET = process.env.JWT_SECRET;
+const REFRESH_JWT_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
 
 // GET ALL USERS
 exports.getAllUsers = async (req, res) => {
@@ -80,15 +81,24 @@ exports.loginUser = async (req, res) => {
         }
 
         const role = user.role || 'user';
-        const token = jwt.sign(
-            { user_id: user.user_id, username: user.username, role: role }, 
+        const userCreds = { user_id: user.user_id, username: user.username, role: role };
+
+        const accessToken = jwt.sign(
+            userCreds,
             JWT_SECRET, 
-            { expiresIn: '1d' }
+            { expiresIn: '10min' }
+        );
+
+        const refreshToken = jwt.sign(
+            userCreds,
+            REFRESH_JWT_SECRET,
+            { expiresIn: '7d' }
         );
 
         res.status(200).json({
             message: 'Login successful.',
-            token,
+            token: accessToken,
+            refresh_token: refreshToken,
             user_id: user.user_id,
             username: user.username,
             role: role
@@ -120,6 +130,37 @@ exports.getCurrentUser = async (req, res) => {
     } catch (err) {
         console.error('Error fetching current user:', err.message);
         res.status(500).json({ error: 'Failed to retrieve profile.' });
+    }
+};
+
+// REFRESH TOKEN
+exports.refreshToken = async (req, res) => {
+    const { refresh_token } = req.body;
+
+    if (!refresh_token) {
+        return res.status(400).json({ error: 'Refresh token is required.' });
+    }
+
+    try {
+        const decoded = jwt.verify(refresh_token, REFRESH_JWT_SECRET);
+
+        const newAccessToken = jwt.sign(
+            {
+                user_id: decoded.user_id,
+                username: decoded.username,
+                role: decoded.role || 'user'
+            },
+            JWT_SECRET,
+            { expiresIn: '10min' }
+        );
+
+        res.status(200).json({
+            message: 'Token refreshed successfully.',
+            token: newAccessToken
+        });
+    } catch (err) {
+        console.error('Refresh token error:', err.message);
+        return res.status(401).json({ error: 'Invalid or expired refresh token.' });
     }
 };
 

@@ -44,9 +44,12 @@ const LoginPage = () => {
                 router.push('/home');
             }, 2000);
 
-            const { token } = response.data;
+            const { token, refresh_token } = response.data;
 
             localStorage.setItem('token', token);
+            if (refresh_token) {
+                localStorage.setItem('refresh_token', refresh_token);
+            }
 
             import('../../utils/auth').then(({ getUserRole }) => {
                 console.log('User Role:', getUserRole());
