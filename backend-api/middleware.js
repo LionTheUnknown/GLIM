@@ -22,3 +22,27 @@ exports.authenticateToken = (req, res, next) => {
         next();
     });
 };
+
+// Optional authentication - sets req.user if token is valid, but doesn't fail if missing
+exports.optionalAuthenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (token == null) {
+        // No token provided - continue without authentication
+        req.user = null;
+        return next();
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+            // Invalid token - continue without authentication
+            req.user = null;
+            return next();
+        }
+
+        // Valid token - set user
+        req.user = { user_id: user.user_id, role: user.role };
+        next();
+    });
+};

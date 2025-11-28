@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
 const postController = require('../controllers/post_controller');
-const { authenticateToken } = require('../middleware');
+const { authenticateToken, optionalAuthenticateToken } = require('../middleware');
 
 router.post('/', authenticateToken, postController.createPost);
-router.get('/', postController.getAllPosts);
-router.get('/:postId', postController.getPostById);
+router.get('/', optionalAuthenticateToken, postController.getAllPosts);
+router.get('/:postId', optionalAuthenticateToken, postController.getPostById);
 router.put('/:postId', authenticateToken, postController.updatePost);
 router.delete('/:postId', authenticateToken, postController.deletePost);
 

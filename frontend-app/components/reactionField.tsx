@@ -20,19 +20,14 @@ interface ReactionFieldProps {
 }
 
 export default function ReactionField({ postId, initialCounts, initialUserReaction }: ReactionFieldProps) {
-    const [optimisticCounts, setOptimisticCounts] = useState<ReactionCounts | null>(null);
-    const [optimisticReaction, setOptimisticReaction] = useState<UserReactionStatus | null>(null);
+    const [counts, setCounts] = useState<ReactionCounts>(initialCounts);
+    const [userReaction, setUserReaction] = useState<UserReactionStatus>(initialUserReaction);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const counts = optimisticCounts ?? initialCounts;
-    const userReaction = optimisticReaction !== null ? optimisticReaction : initialUserReaction;
-
     useEffect(() => {
-        if (!isSubmitting) {
-            setOptimisticCounts(null);
-            setOptimisticReaction(null);
-        }
-    }, [initialCounts.like_count, initialCounts.dislike_count, initialUserReaction, isSubmitting]);
+        setCounts(initialCounts);
+        setUserReaction(initialUserReaction);
+    }, [initialCounts.like_count, initialCounts.dislike_count, initialUserReaction]);
 
     const handleReaction = async (type: ReactionType) => {
         if (isSubmitting || !getToken()) return alert('Please log in to react.');
@@ -41,18 +36,18 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
         
         const isCurrentlyReacted = userReaction === type;
         const newReaction: UserReactionStatus = isCurrentlyReacted ? null : type;
-        const optimisticCounts = { ...counts };
+        const newCounts = { ...counts };
 
         if (userReaction !== null) {
-            optimisticCounts[`${userReaction}_count` as keyof ReactionCounts] = Math.max(0, optimisticCounts[`${userReaction}_count` as keyof ReactionCounts] - 1);
+            newCounts[`${userReaction}_count` as keyof ReactionCounts] = Math.max(0, newCounts[`${userReaction}_count` as keyof ReactionCounts] - 1);
         }
 
         if (newReaction !== null) {
-            optimisticCounts[`${newReaction}_count` as keyof ReactionCounts] = optimisticCounts[`${newReaction}_count` as keyof ReactionCounts] + 1;
+            newCounts[`${newReaction}_count` as keyof ReactionCounts] = newCounts[`${newReaction}_count` as keyof ReactionCounts] + 1;
         }
 
-        setOptimisticCounts(optimisticCounts);
-        setOptimisticReaction(newReaction);
+        setCounts(newCounts);
+        setUserReaction(newReaction);
         
         try {
             const response = await axios.post(
@@ -62,15 +57,15 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
             );
 
             if (response.data.reaction_counts && response.data.user_reaction_type !== undefined) {
-                setOptimisticCounts(response.data.reaction_counts);
-                setOptimisticReaction(response.data.user_reaction_type);
+                setCounts(response.data.reaction_counts);
+                setUserReaction(response.data.user_reaction_type);
             }
             
         } catch (error) {
             console.error("Error toggling reaction:", error);
             alert('Failed to update reaction. Please try again.');
-            setOptimisticCounts(null);
-            setOptimisticReaction(null);
+            setCounts(initialCounts);
+            setUserReaction(initialUserReaction);
         } finally {
             setIsSubmitting(false);
         }

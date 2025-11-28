@@ -182,7 +182,7 @@ const fetchPostMetadata = async (postId, userId) => {
 // GET POST BY ID
 exports.getPostById = async (req, res) => {
     const { postId } = req.params;
-    const userId = req.user?.user_id;
+    const userId = req.user ? req.user.user_id : null;
 
     try {
         const result = await pool.query(`
