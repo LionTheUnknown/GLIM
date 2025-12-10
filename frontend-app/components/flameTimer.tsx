@@ -27,10 +27,15 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
     const frames = useMemo(() => fireAnimation.frames as AnimationFrame[], []);
     
     const [timeRemaining, setTimeRemaining] = useState<number>(0);
+    const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
     const [isExpired, setIsExpired] = useState<boolean>(false);
     const [currentFrameIndex, setCurrentFrameIndex] = useState<number>(0);
 
-    const getFlameRange = (minutes: number) => {
+    const getFlameRange = (minutes: number, hasSeconds: boolean = false) => {
+        // If there are still seconds remaining (even if minutes is 0), use the first range
+        if (minutes === 0 && hasSeconds) {
+            return DURATION_RANGES[0];
+        }
         if (minutes <= 0) return null;
         for (const range of DURATION_RANGES) {
             if (minutes <= range.maxMinutes) {
@@ -44,6 +49,7 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
         if (!expiresAt) {
             setIsExpired(false);
             setTimeRemaining(0);
+            setSecondsRemaining(0);
             return;
         }
 
@@ -55,12 +61,16 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
             if (difference <= 0) {
                 setIsExpired(true);
                 setTimeRemaining(0);
+                setSecondsRemaining(0);
                 return;
             }
 
             setIsExpired(false);
-            const minutesRemaining = Math.floor(difference / (1000 * 60));
+            const totalSeconds = Math.floor(difference / 1000);
+            const minutesRemaining = Math.floor(totalSeconds / 60);
+            const secondsRemaining = totalSeconds % 60;
             setTimeRemaining(minutesRemaining);
+            setSecondsRemaining(secondsRemaining);
         };
 
         updateTimer();
@@ -73,30 +83,59 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
     useEffect(() => {
         if (isExpired || !expiresAt || !frames.length) return;
 
-        const flameRange = getFlameRange(timeRemaining);
-        if (!flameRange) return;
+        const hasSeconds = secondsRemaining > 0;
+        const flameRange = getFlameRange(timeRemaining, hasSeconds);
+        if (!flameRange) {
+            // If no range found but we have time remaining, use the first range as fallback
+            const fallbackRange = DURATION_RANGES[0];
+            setCurrentFrameIndex(fallbackRange.frameStart);
+            return;
+        }
 
         const frameRange = flameRange.frameEnd - flameRange.frameStart + 1;
         
+        // Always reset to the start of the current range when range changes
         setCurrentFrameIndex(flameRange.frameStart);
 
         const interval = setInterval(() => {
             setCurrentFrameIndex(prev => {
-                const currentRange = getFlameRange(timeRemaining);
-                if (!currentRange || prev < currentRange.frameStart || prev > currentRange.frameEnd) {
-                    return currentRange ? currentRange.frameStart : flameRange.frameStart;
+                // Recalculate range in case it changed (e.g., crossed boundary from 61 to 60 minutes)
+                const currentHasSeconds = secondsRemaining > 0;
+                const currentRange = getFlameRange(timeRemaining, currentHasSeconds);
+                
+                // If range changed, reset to new range start
+                if (!currentRange) {
+                    const fallbackRange = DURATION_RANGES[0];
+                    return fallbackRange.frameStart;
                 }
+                
+                // If we're outside the current range bounds, reset to range start
+                if (prev < currentRange.frameStart || prev > currentRange.frameEnd) {
+                    return currentRange.frameStart;
+                }
+                
+                // Continue animation within current range
                 const relativeIndex = prev - currentRange.frameStart;
-                const nextRelativeIndex = (relativeIndex + 1) % frameRange;
+                const nextRelativeIndex = (relativeIndex + 1) % (currentRange.frameEnd - currentRange.frameStart + 1);
                 return currentRange.frameStart + nextRelativeIndex;
             });
         }, FRAME_DURATION_MS);
 
         return () => clearInterval(interval);
-    }, [isExpired, expiresAt, timeRemaining, frames.length]);
+    }, [isExpired, expiresAt, timeRemaining, secondsRemaining, frames.length]);
 
+    // Always show timer - if no expiration, show expired state
     if (!expiresAt) {
-        return <></>;
+        return (
+            <div className="flame-timer expired">
+                <div className="flame-timer-flame">
+                    <pre className="flame-timer-ascii" style={{ color: '#666', opacity: 0.3 }}>
+                        {frames[0]?.content?.join('\n') || ''}
+                    </pre>
+                </div>
+                <span className="flame-timer-label">No Timer</span>
+            </div>
+        );
     }
 
     if (isExpired) {
@@ -112,7 +151,8 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
         );
     }
 
-    const flameRange = getFlameRange(timeRemaining);
+    const hasSeconds = secondsRemaining > 0;
+    const flameRange = getFlameRange(timeRemaining, hasSeconds);
     if (!flameRange) return <></>;
 
     const getFlameColor = () => {
@@ -130,8 +170,10 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
             return `${days}d ${hours}h`;
         } else if (hours > 0) {
             return `${hours}h ${minutes}m`;
-        } else {
+        } else if (minutes > 0) {
             return `${minutes}m`;
+        } else {
+            return `${secondsRemaining}s`;
         }
     };
 

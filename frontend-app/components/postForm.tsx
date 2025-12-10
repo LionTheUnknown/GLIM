@@ -23,7 +23,7 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
     const [formData, setFormData] = useState({
         categoryIds: [] as number[],
         contentText: '',
-        expirationDuration: ''
+        expirationDuration: '1' // Default to 1 minute
     })
     const [categories, setCategories] = useState<Category[]>([])
     const [loadingCategories, setLoadingCategories] = useState(false)
@@ -109,7 +109,7 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
             await api.post(endpoint, payload)
 
             toast.success('Post created successfully!')
-            setFormData({ contentText: '', categoryIds: [], expirationDuration: '' })
+            setFormData({ contentText: '', categoryIds: [], expirationDuration: '1' })
             onPostCreated()
 
         } catch (err: unknown) {

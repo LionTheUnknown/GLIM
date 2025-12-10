@@ -20,14 +20,10 @@ export default function Message({ post }: { post: Post }) {
             <div className="post-text">
               {post.content_text}
             </div>
-            {post.expires_at && (
-              <>
-                <div className="post-divider"></div>
-                <div className="post-flame-container">
-                  <FlameTimer expiresAt={post.expires_at} />
-                </div>
-              </>
-            )}
+            <div className="post-divider"></div>
+            <div className="post-flame-container">
+              <FlameTimer expiresAt={post.expires_at || null} />
+            </div>
           </div>
         </div>
       </div>
