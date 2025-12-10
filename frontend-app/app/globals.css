@@ -7,6 +7,7 @@
 @import "../styles/pages/profile.css";
 @import "../styles/pages/post-detail.css";
 @import "../styles/pages/comment-detail.css";
+@import "../styles/primereact-overrides.css";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));

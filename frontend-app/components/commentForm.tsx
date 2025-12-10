@@ -1,5 +1,8 @@
 import { useState, ReactElement, FormEvent } from 'react'
 import axios from 'axios';
+import { InputTextarea } from 'primereact/inputtextarea';
+import { Button } from 'primereact/button';
+import { toast } from '@/utils/toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -15,17 +18,18 @@ interface CommentFormProps {
 export const CommentForm = ({ postId, parentCommentId, onCommentCreated, onClose, token }: CommentFormProps): ReactElement => {
     const [content, setContent] = useState('');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setError(null);
+        
         if (!content.trim()) {
-            return setError('Comment cannot be empty.');
+            toast.error('Comment cannot be empty');
+            return;
         }
 
         if (!token) {
-            return setError('You must be logged in to comment.');
+            toast.error('Please log in to comment');
+            return;
         }
 
         setLoading(true);
@@ -40,6 +44,7 @@ export const CommentForm = ({ postId, parentCommentId, onCommentCreated, onClose
             });
 
             setContent('');
+            toast.success('Comment posted!');
             onCommentCreated();
             if (onClose) onClose();
             
@@ -48,7 +53,7 @@ export const CommentForm = ({ postId, parentCommentId, onCommentCreated, onClose
             if (axios.isAxiosError(err) && err.response) {
                 message = err.response.data.error || `Server error: ${err.response.status}`;
             }
-            setError(message);
+            toast.error('Failed to create comment', message);
         } finally {
             setLoading(false);
         }
@@ -59,30 +64,34 @@ export const CommentForm = ({ postId, parentCommentId, onCommentCreated, onClose
             onSubmit={handleSubmit} 
             className="comment-form"
         >
-            <textarea
+            <InputTextarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={2}
                 placeholder={parentCommentId ? "Reply to this comment..." : "Add a comment..."}
-                className="textarea"
                 disabled={loading}
+                style={{ width: '100%' }}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.75rem' }}>
                 {onClose && (
-                    <button type="button" onClick={onClose} className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
-                        Cancel
-                    </button>
+                    <Button 
+                        type="button" 
+                        label="Cancel"
+                        icon="pi pi-times"
+                        onClick={onClose} 
+                        outlined
+                        size="small"
+                    />
                 )}
-                <button
+                <Button
                     type="submit"
-                    className="btn btn-primary"
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
+                    label={loading ? 'Posting...' : 'Submit Comment'}
+                    icon="pi pi-send"
                     disabled={loading}
-                >
-                    {loading ? 'Posting...' : 'Submit Comment'}
-                </button>
+                    loading={loading}
+                    size="small"
+                />
             </div>
-            {error && <p className="error-message" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>{error}</p>}
         </form>
     );
 }

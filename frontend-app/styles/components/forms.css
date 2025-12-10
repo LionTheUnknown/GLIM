@@ -115,11 +115,67 @@ select.input option {
   justify-content: center;
 }
 
+.category-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.category-checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.category-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  background: rgba(26, 26, 26, 0.5);
+  border: 1px solid rgba(42, 42, 42, 0.5);
+  border-radius: 6px;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.category-checkbox-item:hover:not(:has(input:disabled)) {
+  border-color: var(--accent);
+  background: rgba(26, 26, 26, 0.7);
+}
+
+.category-checkbox-item:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.category-checkbox {
+  cursor: pointer;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
+.category-checkbox-item span {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.category-checkbox-item:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(255, 107, 53, 0.1);
+}
+
 @media (max-width: 768px) {
   .flame-selector-position {
     margin-top: 1rem;
     width: 100%;
     justify-content: center;
+  }
+
+  .category-checkbox-list {
+    flex-direction: column;
   }
 }
 

@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/utils/api';
 import { isAuthenticated } from '@/utils/auth';
+import { Card } from 'primereact/card';
+import { Button } from 'primereact/button';
+import { toast } from '@/utils/toast';
 
 interface UserProfile {
     user_id: number;
@@ -18,52 +21,56 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const fetchProfile = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await api.get('/api/users/me');
+            setProfile(response.data);
+        } catch (err) {
+            console.error('Error fetching profile:', err);
+            const errorMsg = 'Failed to load profile';
+            setError(errorMsg);
+            toast.error(errorMsg);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         if (!isAuthenticated()) {
             setLoading(false);
             return;
         }
 
-        const fetchProfile = async () => {
-            try {
-                const response = await api.get('/api/users/me');
-                setProfile(response.data);
-            } catch (err) {
-                console.error('Error fetching profile:', err);
-                setError('Failed to load profile');
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchProfile();
-    }, [router]);
+    }, [fetchProfile, router]);
 
     if (!isAuthenticated()) {
         return (
             <div className="page-container">
-                <div className="card profile-card">
+                <Card title="Profile" className="profile-card">
                     <div className="profile-header">
-                        <h1 className="profile-name">Profile</h1>
                         <p className="profile-username" style={{ marginBottom: '2rem' }}>
                             Please log in to view your profile
                         </p>
                     </div>
                     <div className="profile-actions">
-                        <button
+                        <Button
+                            label="Log In"
+                            icon="pi pi-sign-in"
                             onClick={() => router.push('/login')}
-                            className="btn btn-primary profile-action-btn"
-                        >
-                            Log In
-                        </button>
-                        <button
+                            className="profile-action-btn"
+                        />
+                        <Button
+                            label="Sign Up"
+                            icon="pi pi-user-plus"
                             onClick={() => router.push('/register')}
-                            className="btn btn-secondary profile-action-btn"
-                        >
-                            Sign Up
-                        </button>
+                            outlined
+                            className="profile-action-btn"
+                        />
                     </div>
-                </div>
+                </Card>
             </div>
         );
     }
@@ -79,14 +86,29 @@ export default function ProfilePage() {
     if (error || !profile) {
         return (
             <div className="page-container">
-                <p className="error-message error-text">{error || 'Profile not found'}</p>
+                <Card className="profile-card">
+                    <div style={{ padding: '2rem', textAlign: 'center' }}>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                            {error || 'Profile not found'}
+                        </p>
+                        <Button
+                            label="Retry"
+                            icon="pi pi-refresh"
+                            onClick={() => {
+                                setLoading(true);
+                                setError(null);
+                                fetchProfile();
+                            }}
+                        />
+                    </div>
+                </Card>
             </div>
         );
     }
 
     return (
         <div className="page-container">
-            <div className="card profile-card">
+            <Card className="profile-card">
                 <div className="profile-header">
                     <div className="profile-avatar">
                         {profile.username.charAt(0).toUpperCase()}
@@ -111,24 +133,27 @@ export default function ProfilePage() {
                 )}
 
                 <div className="profile-actions">
-                    <button
+                    <Button
+                        label="Back to Feed"
+                        icon="pi pi-home"
                         onClick={() => router.push('/home')}
-                        className="btn btn-secondary profile-action-btn"
-                    >
-                        Back to Feed
-                    </button>
-                    <button
+                        outlined
+                        className="profile-action-btn"
+                    />
+                    <Button
+                        label="Logout"
+                        icon="pi pi-sign-out"
                         onClick={() => {
                             localStorage.removeItem('token');
                             localStorage.removeItem('refresh_token');
+                            toast.info('Logged out successfully');
                             router.push('/login');
                         }}
-                        className="btn btn-secondary profile-action-btn"
-                    >
-                        Logout
-                    </button>
+                        outlined
+                        className="profile-action-btn"
+                    />
                 </div>
-            </div>
+            </Card>
         </div>
     );
 }

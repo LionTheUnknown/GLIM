@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ThumbsUp, ThumbsDown } from 'lucide-react'; 
+import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { toast } from '@/utils/toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const getToken = () => localStorage.getItem('token');
@@ -30,7 +31,12 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
     }, [initialCounts.like_count, initialCounts.dislike_count, initialUserReaction]);
 
     const handleReaction = async (type: ReactionType) => {
-        if (isSubmitting || !getToken()) return alert('Please log in to react.');
+        if (isSubmitting) return;
+        
+        if (!getToken()) {
+            toast.error('Please log in to react');
+            return;
+        }
 
         setIsSubmitting(true);
         
@@ -63,7 +69,7 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
             
         } catch (error) {
             console.error("Error toggling reaction:", error);
-            alert('Failed to update reaction. Please try again.');
+            toast.error('Failed to update reaction', 'Please try again');
             setCounts(initialCounts);
             setUserReaction(initialUserReaction);
         } finally {

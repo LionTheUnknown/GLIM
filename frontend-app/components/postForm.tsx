@@ -1,12 +1,17 @@
 'use client'
 
-import { useState, ChangeEvent, FormEvent, ReactElement, useEffect, useCallback, useRef } from 'react'
+import { useState, FormEvent, ReactElement, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import api from '@/utils/api'
 import { isAuthenticated } from '@/utils/auth'
 import { Category } from '@/app/actions'
 import FlameDurationSelector from './flameDurationSelector'
+import { Card } from 'primereact/card'
+import { InputTextarea } from 'primereact/inputtextarea'
+import { MultiSelect, MultiSelectChangeEvent } from 'primereact/multiselect'
+import { Button } from 'primereact/button'
+import { toast } from '@/utils/toast'
 
 interface PostFormProps {
     onPostCreated: () => void
@@ -16,15 +21,12 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
     const router = useRouter();
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [formData, setFormData] = useState({
-        categoryId: '',
+        categoryIds: [] as number[],
         contentText: '',
         expirationDuration: ''
     })
     const [categories, setCategories] = useState<Category[]>([])
     const [loadingCategories, setLoadingCategories] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [successMessage, setSuccessMessage] = useState<string | null>(null)
-    const textareaRef = useRef<HTMLTextAreaElement>(null)
     const flameSelectorRef = useRef<HTMLDivElement>(null)
 
     const fetchCategories = useCallback(async () => {
@@ -50,8 +52,9 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
 
     useEffect(() => {
         const updateFlameHeight = () => {
-            if (textareaRef.current && flameSelectorRef.current) {
-                const textareaHeight = textareaRef.current.offsetHeight
+            const textareaElement = document.getElementById('contentText') as HTMLTextAreaElement | null
+            if (textareaElement && flameSelectorRef.current) {
+                const textareaHeight = textareaElement.offsetHeight
                 const flameClickable = flameSelectorRef.current.querySelector('.flame-clickable') as HTMLElement
                 if (flameClickable) {
                     flameClickable.style.height = `${textareaHeight}px`
@@ -65,27 +68,32 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
         return () => window.removeEventListener('resize', updateFlameHeight)
     }, [])
 
-    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
+    const handleCategoryChange = (e: MultiSelectChangeEvent) => {
+        setFormData(prev => ({ ...prev, categoryIds: e.value as number[] }))
     }
+
+    const categoryOptions = categories.map(cat => ({
+        label: cat.category_name,
+        value: cat.category_id
+    }))
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        setError(null)
-        setSuccessMessage(null)
 
         if (!isAuthenticated()) {
+            toast.warn('Please log in to create a post')
             router.push('/login')
             return
         }
 
         if (!formData.contentText.trim()) {
-            return setError('Please type out the full content of the post.')
+            toast.error('Post content required', 'Please type out the full content of the post')
+            return
         }
 
         if (!formData.expirationDuration) {
-            return setError('Please select a post duration.')
+            toast.error('Post duration required', 'Please select a post duration')
+            return
         }
 
         try {
@@ -93,17 +101,15 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
 
             const payload = {
                 content_text: formData.contentText,
-                category_id: formData.categoryId || null,
+                category_ids: formData.categoryIds.length > 0 ? formData.categoryIds : null,
                 media_url: null,
                 expiration_duration: parseInt(formData.expirationDuration)
             }
 
             await api.post(endpoint, payload)
 
-            setSuccessMessage('Post created successfully!')
-
-            setFormData({ contentText: '', categoryId: '', expirationDuration: '' })
-
+            toast.success('Post created successfully!')
+            setFormData({ contentText: '', categoryIds: [], expirationDuration: '' })
             onPostCreated()
 
         } catch (err: unknown) {
@@ -115,64 +121,56 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
                 errorMessage = err.message
             }
 
-            setError(errorMessage)
+            toast.error('Failed to create post', errorMessage)
         }
     }
 
+    const header = (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', margin: 0 }}>
+                Create New Post
+            </h2>
+            <Button
+                label="My Profile"
+                icon="pi pi-user"
+                onClick={() => router.push('/profile')}
+                outlined
+                size="small"
+            />
+        </div>
+    )
+
     return (
-        <div className="card post-form-card" style={{ marginBottom: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)' }}>
-                    Create New Post
-                </h2>
-                <button
-                    onClick={() => router.push('/profile')}
-                    className="btn btn-secondary"
-                    type="button"
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
-                >
-                    My Profile
-                </button>
-            </div>
-            
+        <Card header={header} className="post-form-card" style={{ marginBottom: '2rem' }}>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-                        <div className="form-group">
-                            <label htmlFor="contentText" className="label">What&apos;s on your mind?</label>
-                            <textarea
-                                ref={textareaRef}
+                        <div className="p-field">
+                            <label htmlFor="contentText" className="p-label">What&apos;s on your mind?</label>
+                            <InputTextarea
                                 id="contentText"
-                                name="contentText"
                                 value={formData.contentText}
-                                onChange={handleChange}
-                                required
+                                onChange={(e) => setFormData(prev => ({ ...prev, contentText: e.target.value }))}
                                 rows={4}
-                                className="textarea"
                                 placeholder={isLoggedIn ? "Share your thoughts..." : "Please log in to create a post"}
                                 disabled={!isLoggedIn}
+                                style={{ width: '100%' }}
                             />
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="categoryId" className="label">Category (optional)</label>
-                            <div className="select-wrapper">
-                                <select
-                                    id="categoryId"
-                                    name="categoryId"
-                                    value={formData.categoryId}
-                                    onChange={handleChange}
-                                    className="input"
-                                    disabled={!isLoggedIn || loadingCategories}
-                                >
-                                    <option value="">Select a category</option>
-                                    {categories.map((category) => (
-                                        <option key={category.category_id} value={category.category_id}>
-                                            {category.category_name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                        <div className="p-field">
+                            <label htmlFor="categories" className="p-label">Categories (optional)</label>
+                            <MultiSelect
+                                id="categories"
+                                value={formData.categoryIds}
+                                options={categoryOptions}
+                                onChange={handleCategoryChange}
+                                placeholder="Select categories"
+                                disabled={!isLoggedIn || loadingCategories}
+                                loading={loadingCategories}
+                                display="chip"
+                                style={{ width: '100%' }}
+                            />
                         </div>
                     </div>
 
@@ -185,18 +183,14 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
                     </div>
                 </div>
 
-                <button 
+                <Button 
                     type="submit" 
-                    className="btn btn-primary" 
-                    style={{ width: '100%' }}
+                    label={isLoggedIn ? 'Post' : 'Log in to Post'}
+                    icon="pi pi-send"
                     disabled={!isLoggedIn}
-                >
-                    {isLoggedIn ? 'Post' : 'Log in to Post'}
-                </button>
+                    style={{ width: '100%' }}
+                />
             </form>
-
-            {error && <p className="error-message" style={{ marginTop: '1rem' }}>Error: {error}</p>}
-            {successMessage && <p className="success-message" style={{ marginTop: '1rem' }}>{successMessage}</p>}
-        </div>
+        </Card>
     )
 }

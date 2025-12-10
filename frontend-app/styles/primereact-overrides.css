@@ -1,0 +1,440 @@
+/* PrimeReact Component Overrides to Match GLIM Theme */
+
+/* Card Component */
+.p-card {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid rgba(42, 42, 42, 0.8) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.p-card.post-card {
+  background: rgba(31, 31, 31, 0.6) !important;
+  border: 1px solid rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-card .p-card-header {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(42, 42, 42, 0.8) !important;
+  padding: 1rem 1.5rem !important;
+  color: var(--text-primary) !important;
+}
+
+.p-card .p-card-title {
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+  font-size: 1.25rem !important;
+}
+
+.p-card .p-card-body {
+  padding: 1.5rem !important;
+  color: var(--text-primary) !important;
+}
+
+.p-card.post-card .p-card-body {
+  padding: 0 !important;
+}
+
+/* Input Components */
+.p-inputtext,
+.p-inputtextarea,
+.p-password input {
+  background: rgba(26, 26, 26, 0.5) !important;
+  border: 1px solid rgba(42, 42, 42, 0.8) !important;
+  color: var(--text-primary) !important;
+  padding: 0.625rem 0.875rem !important;
+  border-radius: 6px !important;
+  transition: all 0.2s !important;
+  width: 100% !important;
+}
+
+.p-inputtext:enabled:focus,
+.p-inputtextarea:enabled:focus,
+.p-password input:enabled:focus {
+  border-color: rgba(42, 42, 42, 0.8) !important;
+  box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.2) !important;
+  outline: none !important;
+}
+
+.p-inputtext:enabled:hover,
+.p-inputtextarea:enabled:hover,
+.p-password input:enabled:hover {
+  border-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-inputtext::placeholder,
+.p-inputtextarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.p-password {
+  width: 100% !important;
+}
+
+.p-password-panel {
+  background: var(--bg-card) !important;
+  border: 1px solid rgba(42, 42, 42, 0.8) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* MultiSelect Component */
+.p-multiselect {
+  background: rgba(26, 26, 26, 0.5) !important;
+  border: 1px solid rgba(42, 42, 42, 0.8) !important;
+  color: var(--text-primary) !important;
+  border-radius: 6px !important;
+  transition: all 0.2s !important;
+  width: 100% !important;
+}
+
+.p-multiselect:not(.p-disabled):hover {
+  border-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-multiselect:not(.p-disabled).p-focus {
+  border-color: rgba(42, 42, 42, 0.8) !important;
+  box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.2) !important;
+}
+
+.p-multiselect-label {
+  padding: 0.625rem 0.875rem !important;
+  color: var(--text-primary) !important;
+}
+
+.p-multiselect-token {
+  background: var(--accent) !important;
+  color: white !important;
+  border-radius: 4px !important;
+  padding: 0.25rem 0.5rem !important;
+  margin: 0.125rem !important;
+}
+
+.p-multiselect-token-icon {
+  color: white !important;
+}
+
+.p-multiselect-panel {
+  background: var(--bg-card) !important;
+  border: 1px solid rgba(42, 42, 42, 0.8) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.p-multiselect-items-wrapper {
+  background: var(--bg-card) !important;
+}
+
+.p-multiselect-item {
+  color: var(--text-primary) !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.p-multiselect-item:hover {
+  background: rgba(42, 42, 42, 0.5) !important;
+}
+
+.p-multiselect-item.p-highlight {
+  background: rgba(255, 107, 53, 0.2) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-multiselect-item.p-focus {
+  background: rgba(255, 107, 53, 0.1) !important;
+}
+
+.p-multiselect-header {
+  background: var(--bg-secondary) !important;
+  border-bottom: 1px solid rgba(42, 42, 42, 0.8) !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.p-multiselect-filter-container .p-inputtext {
+  background: rgba(26, 26, 26, 0.5) !important;
+  border: 1px solid rgba(42, 42, 42, 0.8) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Button Component */
+.p-button {
+  background: var(--accent) !important;
+  border: 1px solid var(--accent) !important;
+  color: white !important;
+  padding: 0.625rem 1.25rem !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+}
+
+.p-button:enabled:hover {
+  background: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
+  transform: translateY(-1px) !important;
+}
+
+.p-button:enabled:active {
+  transform: translateY(0) !important;
+}
+
+.p-button.p-button-outlined {
+  background: transparent !important;
+  border: 1px solid rgba(42, 42, 42, 0.8) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-button.p-button-outlined:enabled:hover {
+  background: rgba(42, 42, 42, 0.5) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+.p-button.p-button-sm,
+.p-button.p-button-small {
+  padding: 0.5rem 1rem !important;
+  font-size: 0.875rem !important;
+}
+
+.p-button .p-button-icon {
+  margin-right: 0.5rem !important;
+}
+
+/* Message Component */
+.p-message {
+  border-radius: 6px !important;
+  padding: 1rem !important;
+  margin: 0 !important;
+}
+
+.p-message.p-message-success {
+  background: rgba(34, 197, 94, 0.1) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
+  color: #22c55e !important;
+}
+
+.p-message.p-message-error {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  color: #ef4444 !important;
+}
+
+.p-message.p-message-info {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  color: #3b82f6 !important;
+}
+
+.p-message.p-message-warn {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  color: #f59e0b !important;
+}
+
+.p-message-icon {
+  margin-right: 0.75rem !important;
+}
+
+.p-message-text {
+  color: inherit !important;
+}
+
+/* Form Field Labels */
+.p-label {
+  display: block !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: var(--text-secondary) !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.p-field {
+  margin-bottom: 1rem !important;
+}
+
+/* Dropdown/Select Arrow */
+.p-multiselect-trigger {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  width: 2.5rem !important;
+}
+
+.p-multiselect-trigger:hover {
+  background: rgba(42, 42, 42, 0.5) !important;
+}
+
+/* Loading Spinner */
+.p-button-loading-icon {
+  margin-right: 0.5rem !important;
+}
+
+/* Override PrimeReact default focus styles */
+.p-focus {
+  outline: none !important;
+}
+
+/* Ensure consistent spacing */
+.p-component {
+  font-family: inherit !important;
+}
+
+/* Override any white backgrounds */
+.p-component,
+.p-component * {
+  box-sizing: border-box !important;
+}
+
+/* Auth Card Specific Styles */
+.auth-container .p-card {
+  background: rgba(31, 31, 31, 0.6) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(42, 42, 42, 0.8) !important;
+  border-radius: 12px !important;
+  padding: 2.5rem 2rem !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  width: 100% !important;
+  max-width: 550px !important;
+}
+
+.auth-container .p-card .p-card-header {
+  border-bottom: none !important;
+  padding: 0 0 2rem 0 !important;
+}
+
+.auth-container .p-card .p-card-title {
+  font-size: 1.875rem !important;
+  text-align: center !important;
+  background: linear-gradient(135deg, var(--flame-gold), var(--flame-orange)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  margin-bottom: 0 !important;
+}
+
+.auth-container .p-card .p-card-body {
+  padding: 0 !important;
+}
+
+/* Profile Card Specific Styles */
+.profile-card.p-card {
+  background: rgba(31, 31, 31, 0.6) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+/* Post Form Card Specific Styles */
+.post-form-card.p-card {
+  background: rgba(31, 31, 31, 0.6) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(42, 42, 42, 0.5) !important;
+}
+
+/* Ensure consistent font sizes */
+.p-card .p-card-body,
+.p-inputtext,
+.p-inputtextarea,
+.p-button {
+  font-size: 0.875rem !important;
+}
+
+/* MultiSelect empty state */
+.p-multiselect-label-container {
+  color: var(--text-muted) !important;
+}
+
+.p-multiselect-label-container:not(.p-multiselect-label-empty) {
+  color: var(--text-primary) !important;
+}
+
+/* Loading state for MultiSelect */
+.p-multiselect.p-disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Ensure icons are properly sized */
+.p-button-icon {
+  font-size: 1rem !important;
+}
+
+.p-message-icon {
+  font-size: 1.25rem !important;
+}
+
+/* Override PrimeReact default transitions to match theme */
+.p-button,
+.p-inputtext,
+.p-inputtextarea,
+.p-multiselect {
+  transition: all 0.2s ease !important;
+}
+
+/* Toast Component */
+.p-toast {
+  z-index: 1100 !important;
+}
+
+.p-toast .p-toast-message {
+  background: var(--bg-card) !important;
+  border: 1px solid rgba(42, 42, 42, 0.8) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-success {
+  border-left: 4px solid var(--success) !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-error {
+  border-left: 4px solid var(--error) !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-info {
+  border-left: 4px solid #3b82f6 !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-warn {
+  border-left: 4px solid #f59e0b !important;
+}
+
+.p-toast .p-toast-message-content {
+  padding: 1rem !important;
+}
+
+.p-toast .p-toast-message-text {
+  color: var(--text-primary) !important;
+  margin: 0 !important;
+}
+
+.p-toast .p-toast-summary {
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+  font-size: 0.875rem !important;
+}
+
+.p-toast .p-toast-detail {
+  color: var(--text-secondary) !important;
+  font-size: 0.8rem !important;
+  margin-top: 0.25rem !important;
+}
+
+.p-toast .p-toast-icon-close {
+  color: var(--text-secondary) !important;
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
+
+.p-toast .p-toast-icon-close:hover {
+  color: var(--text-primary) !important;
+}
+

@@ -27,26 +27,78 @@
 
 .post-grid {
   display: grid;
-  grid-template-columns: 1fr 3fr;
+  grid-template-columns: 150px 1px 1fr;
   min-height: 100px;
 }
 
 .post-author {
-  padding: 1rem;
-  border-right: 1px solid rgba(42, 42, 42, 0.5);
-  font-weight: 700;
-  color: white;
+  padding: 0.75rem;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
   background: rgba(26, 26, 26, 0.5);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 
+.post-author-divider {
+  width: 1px;
+  background: rgba(42, 42, 42, 0.5);
+  align-self: stretch;
+}
+
+.post-author-name {
+  font-weight: 700;
+  color: white;
+  font-size: 0.9rem;
+  text-align: center;
+  word-break: break-word;
+}
+
+.post-category {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 0.25rem 0.5rem;
+  background: rgba(42, 42, 42, 0.3);
+  border-radius: 4px;
+  word-break: break-word;
+}
+
 .post-content {
   padding: 1rem;
   color: white;
+  display: flex;
+  align-items: stretch;
+}
+
+.post-content-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.post-text {
+  flex: 1;
   white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.post-divider {
+  width: 1px;
+  background: rgba(42, 42, 42, 0.5);
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.post-flame-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.5rem;
 }
 

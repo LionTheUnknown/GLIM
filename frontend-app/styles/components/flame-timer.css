@@ -15,6 +15,9 @@
   justify-content: center;
   position: relative;
   overflow: hidden;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 107, 53, 0.05) 0%, transparent 70%);
+  border: 2px solid rgba(42, 42, 42, 0.5);
 }
 
 .flame-timer-ascii {
@@ -47,6 +50,11 @@
 
 .flame-timer.expired {
   opacity: 0.5;
+}
+
+.flame-timer.expired .flame-timer-flame {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.05) 0%, transparent 70%);
 }
 
 .flame-timer.expired .flame-timer-label {

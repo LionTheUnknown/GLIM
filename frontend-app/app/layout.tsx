@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import PlasmaBackground from "../components/PlasmaBackground";
+import PrimeReactProviderWrapper from "../components/PrimeReactProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,10 +30,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ position: 'relative', minHeight: '100vh' }}
       >
-        <PlasmaBackground />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          {children}
-        </div>
+        <PrimeReactProviderWrapper>
+          <PlasmaBackground />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            {children}
+          </div>
+        </PrimeReactProviderWrapper>
       </body>
     </html>
   );

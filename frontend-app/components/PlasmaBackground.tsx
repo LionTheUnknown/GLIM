@@ -13,11 +13,11 @@ export default function PlasmaBackground() {
     >
       <Plasma
         color="#ff4500"
-        speed={0.3}
+        speed={0.2}
         direction="forward"
-        scale={2.0}
-        opacity={0.8}
-        mouseInteractive={true}
+        scale={1.5}
+        opacity={0.4}
+        mouseInteractive={false}
       />
     </div>
   );

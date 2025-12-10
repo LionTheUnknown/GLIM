@@ -1,4 +1,4 @@
-const { pool } = require('../db');
+const { pool, getClient } = require('../db');
 
 // GET ALL POSTS
 exports.getAllPosts = async (req, res) => {
@@ -6,7 +6,7 @@ exports.getAllPosts = async (req, res) => {
     
     try {
         const result = await pool.query(`
-            SELECT posts.post_id, posts.content_text, posts.category_id, 
+            SELECT DISTINCT posts.post_id, posts.content_text, posts.category_id, 
                 users.display_name AS author_name, 
                 posts.created_at, posts.expires_at, posts.media_url
             FROM posts
@@ -52,13 +52,33 @@ exports.getAllPosts = async (req, res) => {
             });
         }
 
+        const categoriesMap = new Map();
+
+        if (postIds.length > 0) {
+            const categoriesResult = await pool.query(`
+                SELECT pc.post_id, c.category_name
+                FROM post_categories pc
+                JOIN categories c ON pc.category_id = c.category_id
+                WHERE pc.post_id = ANY($1::int[])
+                ORDER BY pc.post_id, c.category_name
+            `, [postIds]);
+
+            categoriesResult.rows.forEach(row => {
+                if (!categoriesMap.has(row.post_id)) {
+                    categoriesMap.set(row.post_id, []);
+                }
+                categoriesMap.get(row.post_id).push(row.category_name);
+            });
+        }
+
         const formattedPosts = result.rows.map(record => {
             const postId = record.post_id;
+            const categories = categoriesMap.get(postId) || [];
             return {
                 post_id: postId,
                 author_name: record.author_name,
                 content_text: record.content_text,
-                category: record.category_id,
+                category: categories.length > 0 ? categories.join(', ') : null,
                 created_at: record.created_at,
                 expires_at: record.expires_at,
                 media_url: record.media_url,
@@ -78,7 +98,7 @@ exports.getAllPosts = async (req, res) => {
 // CREATE POST
 exports.createPost = async (req, res) => {
     const authorId = req.user.user_id;
-    const { content_text, category_id, media_url, expiration_duration } = req.body;
+    const { content_text, category_ids, category_id, media_url, expiration_duration } = req.body;
 
     if (!content_text || content_text.trim().length === 0) {
         return res.status(400).json({ error: 'Something needs to be written for the post to be made' });
@@ -98,17 +118,54 @@ exports.createPost = async (req, res) => {
         return res.status(400).json({ error: 'Invalid post duration. Allowed values are: 1 minute, 1 hour, or 1 day.' });
     }
 
+    let client;
+    
     try {
+        client = await getClient();
+        await client.query('BEGIN');
+        
         const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
+        
+        const categoryIdsArray = category_ids || (category_id ? [category_id] : []);
+        const validCategoryIds = Array.isArray(categoryIdsArray) 
+            ? categoryIdsArray.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0)
+            : [];
 
-        await pool.query(`
+        const firstCategoryId = validCategoryIds.length > 0 ? validCategoryIds[0] : null;
+
+        const result = await client.query(`
             INSERT INTO posts (author_id, category_id, content_text, media_url, expires_at) 
             VALUES ($1, $2, $3, $4, $5)
-        `, [authorId, category_id ? parseInt(category_id) : null, content_text, media_url || null, expiresAt]);
+            RETURNING post_id
+        `, [authorId, firstCategoryId, content_text, media_url || null, expiresAt]);
 
+        const postId = result.rows[0].post_id;
+
+        if (validCategoryIds.length > 0) {
+            for (const categoryId of validCategoryIds) {
+                await client.query(`
+                    INSERT INTO post_categories (post_id, category_id)
+                    VALUES ($1, $2)
+                    ON CONFLICT (post_id, category_id) DO NOTHING
+                `, [postId, categoryId]);
+            }
+        }
+
+        await client.query('COMMIT');
+        client.release();
+        
         res.status(201).json({ message: 'Post created successfully.' });
 
     } catch (err) {
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackErr) {
+                console.error('Error rolling back transaction:', rollbackErr.message);
+            } finally {
+                client.release();
+            }
+        }
         console.error('Error creating post:', err.message);
         res.status(500).json({ error: 'Failed to create post.', details: err.message });
     }
@@ -189,7 +246,7 @@ const formatPost = (post, reactionCounts, userReactionType) => {
         author_id,
         display_name: author_name,
         created_at,
-        category_id,
+        category_name,
         expires_at,
     } = post;
 
@@ -200,7 +257,7 @@ const formatPost = (post, reactionCounts, userReactionType) => {
         author_id,
         author_name,
         created_at,
-        category_id,
+        category: category_name || null,
         expires_at,
         reaction_counts: reactionCounts,
         user_reaction_type: userReactionType,
@@ -263,6 +320,17 @@ exports.getPostById = async (req, res) => {
             return res.status(404).json({ message: `Post with ID ${postId} not found.` });
         }
 
+        const categoriesResult = await pool.query(`
+            SELECT c.category_name
+            FROM post_categories pc
+            JOIN categories c ON pc.category_id = c.category_id
+            WHERE pc.post_id = $1
+            ORDER BY c.category_name
+        `, [postId]);
+
+        const categories = categoriesResult.rows.map(row => row.category_name);
+        post.category_name = categories.length > 0 ? categories.join(', ') : null;
+
         const metadata = await fetchPostMetadata(postId, userId);
         res.status(200).json(formatPost(post, metadata.counts, metadata.userReaction));
 
@@ -275,29 +343,94 @@ exports.getPostById = async (req, res) => {
 // GET POST LIST BY CATEGORY
 exports.getPostsByCategory = async (req, res) => {
     const categoryId = req.params.categoryId; 
+    const userId = req.user ? req.user.user_id : null;
 
     try {
         const result = await pool.query(`
-            SELECT p.post_id, p.content_text, p.media_url, p.created_at, p.expires_at,
-                   u.display_name AS author_name, c.category_name
+            SELECT DISTINCT p.post_id, p.content_text, p.media_url, p.created_at, p.expires_at,
+                   u.display_name AS author_name
             FROM posts p
             JOIN users u ON p.author_id = u.user_id 
-            JOIN categories c ON p.category_id = c.category_id
-            WHERE p.category_id = $1 AND (p.expires_at IS NULL OR p.expires_at > CURRENT_TIMESTAMP)
+            JOIN post_categories pc ON p.post_id = pc.post_id
+            WHERE pc.category_id = $1 AND (p.expires_at IS NULL OR p.expires_at > CURRENT_TIMESTAMP)
             ORDER BY p.created_at DESC
         `, [categoryId]);
 
-        const formattedPosts = result.rows.map(record => ({
-            post_id: record.post_id,
-            author_name: record.author_name,
-            content_text: record.content_text,
-            category_name: record.category_name,
-            media_url: record.media_url,
-            created_at: record.created_at,
-            expires_at: record.expires_at,
-        }));
-        
-        res.status(200).json(formattedPosts);
+        if (result.rows.length === 0) {
+            return res.status(200).json([]);
+        }
+
+        const postIds = result.rows.map(post => post.post_id);
+        let countsMap = new Map();
+        let userReactionsMap = new Map();
+
+        if (postIds.length > 0) {
+            const countsResult = await pool.query(`
+                SELECT 
+                    post_id,
+                    COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS like_count,
+                    COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) AS dislike_count
+                FROM reactions
+                WHERE post_id = ANY($1::int[]) AND comment_id IS NULL
+                GROUP BY post_id
+            `, [postIds]);
+
+            countsResult.rows.forEach(row => {
+                countsMap.set(row.post_id, {
+                    like_count: parseInt(row.like_count) || 0,
+                    dislike_count: parseInt(row.dislike_count) || 0
+                });
+            });
+
+            if (userId) {
+                const userReactionsResult = await pool.query(`
+                    SELECT post_id, reaction_type 
+                    FROM reactions 
+                    WHERE user_id = $1 AND post_id = ANY($2::int[]) AND comment_id IS NULL
+                `, [userId, postIds]);
+
+                userReactionsResult.rows.forEach(row => {
+                    userReactionsMap.set(row.post_id, row.reaction_type);
+                });
+            }
+
+            const categoriesMap = new Map();
+            const categoriesResult = await pool.query(`
+                SELECT pc.post_id, c.category_name
+                FROM post_categories pc
+                JOIN categories c ON pc.category_id = c.category_id
+                WHERE pc.post_id = ANY($1::int[])
+                ORDER BY pc.post_id, c.category_name
+            `, [postIds]);
+
+            categoriesResult.rows.forEach(row => {
+                if (!categoriesMap.has(row.post_id)) {
+                    categoriesMap.set(row.post_id, []);
+                }
+                categoriesMap.get(row.post_id).push(row.category_name);
+            });
+
+            const formattedPosts = result.rows.map(record => {
+                const counts = countsMap.get(record.post_id) || { like_count: 0, dislike_count: 0 };
+                const userReaction = userReactionsMap.get(record.post_id) || null;
+                const categories = categoriesMap.get(record.post_id) || [];
+                return {
+                    post_id: record.post_id,
+                    author_name: record.author_name,
+                    content_text: record.content_text,
+                    category: categories.length > 0 ? categories.join(', ') : null,
+                    media_url: record.media_url,
+                    created_at: record.created_at,
+                    expires_at: record.expires_at,
+                    reaction_counts: counts,
+                    user_reaction_type: userReaction,
+                };
+            });
+            
+            res.status(200).json(formattedPosts);
+        } else {
+            res.status(200).json([]);
+        }
         
     } catch (err) {
         console.error('Error fetching posts by category:', err.message);

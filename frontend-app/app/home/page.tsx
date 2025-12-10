@@ -8,6 +8,8 @@ import { PostList } from '../../components/post-list';
 import PostForm from '../../components/postForm';
 import { Posts } from '@/app/actions';
 import { isAuthenticated } from '@/utils/auth';
+import { Button } from 'primereact/button';
+import { toast } from '@/utils/toast';
 
 const HomePage = () => {
     const router = useRouter();
@@ -30,6 +32,7 @@ const HomePage = () => {
             }
 
             setError(errorMessage);
+            toast.error('Failed to load posts', errorMessage);
         } finally {
             setLoading(false);
         }
@@ -37,11 +40,7 @@ const HomePage = () => {
 
     useEffect(() => {
         setMounted(true);
-        if (isAuthenticated()) {
-            fetchPosts();
-        } else {
-            setLoading(false);
-        }
+        fetchPosts();
     }, []);
 
     if (!mounted || loading) {
@@ -54,60 +53,47 @@ const HomePage = () => {
         );
     }
 
-    if (!isAuthenticated()) {
+
+    if (error) {
         return (
             <div className="page-container">
-                <h1 className="home-title">
-                    GLIM
-                </h1>
-                <div className="home-content">
-                    <div className="card profile-card">
-                        <div className="profile-header">
-                            <h1 className="profile-name">Welcome to GLIM</h1>
-                            <p className="profile-username" style={{ marginBottom: '2rem' }}>
-                                Please log in to view and create posts
-                            </p>
-                        </div>
-                        <div className="profile-actions">
-                            <button
-                                onClick={() => router.push('/login')}
-                                className="btn btn-primary profile-action-btn"
-                            >
-                                Log In
-                            </button>
-                            <button
-                                onClick={() => router.push('/register')}
-                                className="btn btn-secondary profile-action-btn"
-                            >
-                                Sign Up
-                            </button>
-                        </div>
-                    </div>
+                <div style={{ padding: '2rem', textAlign: 'center' }}>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                        {error}
+                    </p>
+                    <Button
+                        label="Retry"
+                        icon="pi pi-refresh"
+                        onClick={() => {
+                            setLoading(true);
+                            setError(null);
+                            fetchPosts();
+                        }}
+                    />
                 </div>
             </div>
         );
     }
 
-    if (error) {
-        return (
-            <div className="page-container">
-                <p className="error-message error-text">
-                    Error: {error}
-                </p>
-            </div>
-        );
-    }
+    const isLoggedIn = isAuthenticated();
 
     if (posts.length === 0) {
         return (
             <div className="page-container">
-                <h1 className="empty-posts-title">
-                    Latest Posts
-                </h1>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <h1 className="home-title">GLIM</h1>
+                    {!isLoggedIn && (
+                        <Button
+                            label="Login"
+                            icon="pi pi-sign-in"
+                            onClick={() => router.push('/login')}
+                        />
+                    )}
+                </div>
                 <div className="home-content">
-                    <PostForm onPostCreated={fetchPosts} />
+                    {isLoggedIn && <PostForm onPostCreated={fetchPosts} />}
                     <p className="empty-posts-message">
-                        No posts found. Start posting!
+                        No posts found. {isLoggedIn ? 'Start posting!' : 'Log in to create posts!'}
                     </p>
                 </div>
             </div>
@@ -116,11 +102,18 @@ const HomePage = () => {
 
     return (
         <div className="page-container">
-            <h1 className="home-title">
-                GLIM
-            </h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h1 className="home-title">GLIM</h1>
+                {!isLoggedIn && (
+                    <Button
+                        label="Login"
+                        icon="pi pi-sign-in"
+                        onClick={() => router.push('/login')}
+                    />
+                )}
+            </div>
             <div className="home-content">
-                <PostForm onPostCreated={fetchPosts} />
+                {isLoggedIn && <PostForm onPostCreated={fetchPosts} />}
                 <PostList posts={posts} />
             </div>
         </div>
