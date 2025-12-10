@@ -28,7 +28,7 @@ export default function ReactionField({ postId, initialCounts, initialUserReacti
     useEffect(() => {
         setCounts(initialCounts);
         setUserReaction(initialUserReaction);
-    }, [initialCounts.like_count, initialCounts.dislike_count, initialUserReaction]);
+    }, [initialCounts, initialUserReaction]);
 
     const handleReaction = async (type: ReactionType) => {
         if (isSubmitting) return;

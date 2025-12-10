@@ -59,6 +59,21 @@ CREATE INDEX idx_posts_category_id ON posts(category_id);
 CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
 
 -- ============================================
+-- 3.5. POST_CATEGORIES JUNCTION TABLE
+-- ============================================
+-- Junction table for many-to-many relationship between posts and categories
+CREATE TABLE post_categories (
+    post_id INTEGER NOT NULL REFERENCES posts(post_id) ON DELETE CASCADE,
+    category_id INTEGER NOT NULL REFERENCES categories(category_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (post_id, category_id)
+);
+
+-- Indexes for performance
+CREATE INDEX idx_post_categories_post_id ON post_categories(post_id);
+CREATE INDEX idx_post_categories_category_id ON post_categories(category_id);
+
+-- ============================================
 -- 4. COMMENTS TABLE
 -- ============================================
 CREATE TABLE comments (
