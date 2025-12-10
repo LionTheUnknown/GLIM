@@ -91,8 +91,6 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
             setCurrentFrameIndex(fallbackRange.frameStart);
             return;
         }
-
-        const frameRange = flameRange.frameEnd - flameRange.frameStart + 1;
         
         // Always reset to the start of the current range when range changes
         setCurrentFrameIndex(flameRange.frameStart);
