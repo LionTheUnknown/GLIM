@@ -84,7 +84,7 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
             setCurrentFrameIndex(prev => {
                 const currentRange = getFlameRange(timeRemaining);
                 if (!currentRange || prev < currentRange.frameStart || prev > currentRange.frameEnd) {
-                    return currentRange.frameStart;
+                    return currentRange ? currentRange.frameStart : flameRange.frameStart;
                 }
                 const relativeIndex = prev - currentRange.frameStart;
                 const nextRelativeIndex = (relativeIndex + 1) % frameRange;
