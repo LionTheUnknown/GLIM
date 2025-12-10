@@ -4,6 +4,7 @@ import { ReactElement } from 'react'
 import Image from 'next/image'
 import { Post } from '@/app/actions' 
 import ReactionField from './reactionField';
+import FlameTimer from './flameTimer';
 
 interface HighlightedPostProps {
     post: Post;
@@ -12,9 +13,12 @@ interface HighlightedPostProps {
 export default function HighlightedPost({ post }: HighlightedPostProps): ReactElement {
     return (
         <>
-            <h1 className="text-3xl font-extrabold text-white mb-2">
-                {post.content_text.substring(0, 50)}...
-            </h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '0.5rem' }}>
+                <h1 className="text-3xl font-extrabold text-white mb-2">
+                    {post.content_text.substring(0, 50)}...
+                </h1>
+                {post.expires_at && <FlameTimer expiresAt={post.expires_at} />}
+            </div>
             <p className="text-sm text-stone-400 mb-4">
                 By {post.author_name} on {new Date(post.created_at).toLocaleDateString()}
             </p>

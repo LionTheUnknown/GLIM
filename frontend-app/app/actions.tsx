@@ -5,6 +5,7 @@ export type Post = {
     post_id: number; 
     media_url: string | null;
     created_at: string;
+    expires_at: string | null;
 
     reaction_counts: {
         like_count: number;

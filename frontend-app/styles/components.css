@@ -6,3 +6,6 @@
 @import "./components/comments.css";
 @import "./components/auth.css";
 @import "./components/reactions.css";
+@import "./components/timer.css";
+@import "./components/flame-selector.css";
+@import "./components/flame-timer.css";

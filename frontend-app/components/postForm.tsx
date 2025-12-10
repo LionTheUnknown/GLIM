@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, ChangeEvent, FormEvent, ReactElement, useEffect, useCallback } from 'react'
+import { useState, ChangeEvent, FormEvent, ReactElement, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import api from '@/utils/api'
 import { isAuthenticated } from '@/utils/auth'
 import { Category } from '@/app/actions'
+import FlameDurationSelector from './flameDurationSelector'
 
 interface PostFormProps {
     onPostCreated: () => void
@@ -17,12 +18,14 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
     const [formData, setFormData] = useState({
         categoryId: '',
         contentText: '',
-        mediaUrl: ''
+        expirationDuration: ''
     })
     const [categories, setCategories] = useState<Category[]>([])
     const [loadingCategories, setLoadingCategories] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const flameSelectorRef = useRef<HTMLDivElement>(null)
 
     const fetchCategories = useCallback(async () => {
         try {
@@ -45,6 +48,23 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
         }
     }, [fetchCategories])
 
+    useEffect(() => {
+        const updateFlameHeight = () => {
+            if (textareaRef.current && flameSelectorRef.current) {
+                const textareaHeight = textareaRef.current.offsetHeight
+                const flameClickable = flameSelectorRef.current.querySelector('.flame-clickable') as HTMLElement
+                if (flameClickable) {
+                    flameClickable.style.height = `${textareaHeight}px`
+                    flameClickable.style.width = `${textareaHeight}px`
+                }
+            }
+        }
+
+        updateFlameHeight()
+        window.addEventListener('resize', updateFlameHeight)
+        return () => window.removeEventListener('resize', updateFlameHeight)
+    }, [])
+
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         setFormData(prev => ({ ...prev, [name]: value }))
@@ -64,20 +84,25 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
             return setError('Please type out the full content of the post.')
         }
 
+        if (!formData.expirationDuration) {
+            return setError('Please select a post duration.')
+        }
+
         try {
             const endpoint = '/api/posts'
 
             const payload = {
                 content_text: formData.contentText,
                 category_id: formData.categoryId || null,
-                media_url: formData.mediaUrl || null
+                media_url: null,
+                expiration_duration: parseInt(formData.expirationDuration)
             }
 
             await api.post(endpoint, payload)
 
             setSuccessMessage('Post created successfully!')
 
-            setFormData({ contentText: '', categoryId: '', mediaUrl: '' })
+            setFormData({ contentText: '', categoryId: '', expirationDuration: '' })
 
             onPostCreated()
 
@@ -111,54 +136,53 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
             </div>
             
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="form-group">
-                    <label htmlFor="contentText" className="label">What&apos;s on your mind?</label>
-                    <textarea
-                        id="contentText"
-                        name="contentText"
-                        value={formData.contentText}
-                        onChange={handleChange}
-                        required
-                        rows={4}
-                        className="textarea"
-                        placeholder={isLoggedIn ? "Share your thoughts..." : "Please log in to create a post"}
-                        disabled={!isLoggedIn}
-                    />
-                </div>
+                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
+                        <div className="form-group">
+                            <label htmlFor="contentText" className="label">What&apos;s on your mind?</label>
+                            <textarea
+                                ref={textareaRef}
+                                id="contentText"
+                                name="contentText"
+                                value={formData.contentText}
+                                onChange={handleChange}
+                                required
+                                rows={4}
+                                className="textarea"
+                                placeholder={isLoggedIn ? "Share your thoughts..." : "Please log in to create a post"}
+                                disabled={!isLoggedIn}
+                            />
+                        </div>
 
-                <div className="form-group">
-                    <label htmlFor="categoryId" className="label">Category (optional)</label>
-                    <div className="select-wrapper">
-                        <select
-                            id="categoryId"
-                            name="categoryId"
-                            value={formData.categoryId}
-                            onChange={handleChange}
-                            className="input"
-                            disabled={!isLoggedIn || loadingCategories}
-                        >
-                            <option value="">Select a category</option>
-                            {categories.map((category) => (
-                                <option key={category.category_id} value={category.category_id}>
-                                    {category.category_name}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="form-group">
+                            <label htmlFor="categoryId" className="label">Category (optional)</label>
+                            <div className="select-wrapper">
+                                <select
+                                    id="categoryId"
+                                    name="categoryId"
+                                    value={formData.categoryId}
+                                    onChange={handleChange}
+                                    className="input"
+                                    disabled={!isLoggedIn || loadingCategories}
+                                >
+                                    <option value="">Select a category</option>
+                                    {categories.map((category) => (
+                                        <option key={category.category_id} value={category.category_id}>
+                                            {category.category_name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div className="form-group">
-                    <label htmlFor="mediaUrl" className="label">Media URL (optional)</label>
-                    <input
-                        type="text"
-                        id="mediaUrl"
-                        name="mediaUrl"
-                        value={formData.mediaUrl}
-                        onChange={handleChange}
-                        className="input"
-                        placeholder="URL to an image or video"
-                        disabled={!isLoggedIn}
-                    />
+                    <div ref={flameSelectorRef} className="flame-selector-position">
+                        <FlameDurationSelector
+                            value={formData.expirationDuration}
+                            onChange={(value) => setFormData(prev => ({ ...prev, expirationDuration: value }))}
+                            disabled={!isLoggedIn}
+                        />
+                    </div>
                 </div>
 
                 <button 
