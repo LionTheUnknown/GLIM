@@ -323,7 +323,7 @@ export default function ProfilePage() {
                 {postsLoading ? (
                     <p className="loading-text">Loading posts...</p>
                 ) : posts.length === 0 ? (
-                    <p className="profile-no-posts">You haven't created any posts yet.</p>
+                    <p className="profile-no-posts">You haven&apos;t created any posts yet.</p>
                 ) : (
                     <PostList 
                         posts={posts} 
