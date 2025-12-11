@@ -165,11 +165,41 @@ export default function ProfilePage() {
         <div className="page-container">
             <Card className="profile-card">
                 <div className="profile-header">
-                    <div className="profile-avatar">
-                        {profile.avatar_url ? (
-                            <img src={profile.avatar_url} alt="avatar" />
-                        ) : (
-                            profile.username.charAt(0).toUpperCase()
+                    <div className="profile-avatar-container">
+                        <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                            ref={fileInputRef}
+                            style={{ display: 'none' }}
+                            onChange={handleFileChange}
+                        />
+                        <div 
+                            className={`profile-avatar profile-avatar-clickable ${uploading ? 'profile-avatar-uploading' : ''}`}
+                            onClick={handleSelectFile}
+                            title="Click to change avatar"
+                        >
+                            {profile.avatar_url ? (
+                                <img src={profile.avatar_url} alt="avatar" />
+                            ) : (
+                                profile.username.charAt(0).toUpperCase()
+                            )}
+                            <div className="profile-avatar-overlay">
+                                <i className={`pi ${uploading ? 'pi-spin pi-spinner' : 'pi-camera'}`}></i>
+                            </div>
+                        </div>
+                        {profile.avatar_url && (
+                            <button
+                                className="profile-avatar-delete"
+                                onClick={handleRemoveAvatar}
+                                disabled={removing}
+                                title="Remove avatar"
+                            >
+                                {removing ? (
+                                    <i className="pi pi-spin pi-spinner"></i>
+                                ) : (
+                                    <i className="pi pi-times"></i>
+                                )}
+                            </button>
                         )}
                     </div>
                     <h1 className="profile-name">
@@ -192,30 +222,6 @@ export default function ProfilePage() {
                 )}
 
                 <div className="profile-actions">
-                    <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/jpg,image/webp"
-                        ref={fileInputRef}
-                        style={{ display: 'none' }}
-                        onChange={handleFileChange}
-                    />
-                    <Button
-                        label="Change Avatar"
-                        icon="pi pi-image"
-                        onClick={handleSelectFile}
-                        loading={uploading}
-                        disabled={uploading}
-                        className="profile-action-btn"
-                    />
-                    <Button
-                        label="Remove Avatar"
-                        icon="pi pi-trash"
-                        onClick={handleRemoveAvatar}
-                        outlined
-                        loading={removing}
-                        disabled={removing || !profile.avatar_url}
-                        className="profile-action-btn"
-                    />
                     <Button
                         label="Back to Feed"
                         icon="pi pi-home"

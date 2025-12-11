@@ -96,6 +96,13 @@ export default function HighlightedPost({ post, onPostDeleted, onPostUpdated }: 
             )}
             <div className="post-content">
                 <div className="post-header">
+                    <div className="post-author-avatar">
+                        {post.author_avatar_url ? (
+                            <img src={post.author_avatar_url} alt="" />
+                        ) : (
+                            post.author_name.charAt(0).toUpperCase()
+                        )}
+                    </div>
                     <span className="post-author-name">{post.author_name}</span>
                     {categoriesText && (
                         <>

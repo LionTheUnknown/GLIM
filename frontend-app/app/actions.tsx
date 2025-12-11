@@ -1,5 +1,6 @@
 export type Post = {
     author_name: string;
+    author_avatar_url?: string | null;
     categories?: Category[]; 
     content_text: string;
     post_id: number; 
@@ -22,6 +23,7 @@ export type Comment = {
     comment_id: number;
     content_text: string;
     author_name: string;
+    author_avatar_url?: string | null;
     created_at: string;
     parent_comment_id: number | null;
     reaction_counts?: {

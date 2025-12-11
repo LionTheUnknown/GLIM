@@ -9,12 +9,17 @@
   margin-bottom: 2rem;
 }
 
+.profile-avatar-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
 .profile-avatar {
   width: 100px;
   height: 100px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--flame-orange), var(--flame-bright));
-  margin: 0 auto 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -22,6 +27,7 @@
   font-weight: 700;
   color: white;
   overflow: hidden;
+  position: relative;
 }
 
 .profile-avatar img {
@@ -29,6 +35,76 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.profile-avatar-clickable {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.profile-avatar-clickable:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
+}
+
+.profile-avatar-uploading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.profile-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  border-radius: 50%;
+}
+
+.profile-avatar-clickable:hover .profile-avatar-overlay,
+.profile-avatar-uploading .profile-avatar-overlay {
+  opacity: 1;
+}
+
+.profile-avatar-overlay i {
+  font-size: 1.5rem;
+  color: white;
+}
+
+.profile-avatar-delete {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-card);
+  border: 2px solid var(--surface-border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+
+.profile-avatar-delete:hover {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: white;
+  transform: scale(1.1);
+}
+
+.profile-avatar-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.profile-avatar-delete i {
+  font-size: 0.75rem;
 }
 
 .profile-name {

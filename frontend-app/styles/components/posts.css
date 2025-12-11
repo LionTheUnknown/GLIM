@@ -43,6 +43,27 @@
   font-size: 0.75rem;
 }
 
+.post-author-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--flame-orange), var(--flame-bright));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.post-author-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .post-author-name {
   font-weight: 600;
   color: white;

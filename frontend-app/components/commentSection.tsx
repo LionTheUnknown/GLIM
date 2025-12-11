@@ -31,7 +31,16 @@ const CommentItem = ({ comment, postId, comments, token, fetchComments }: {
         <div className="comment-item">
             <div className="comment-card">
                 <div className="comment-header">
-                    <span className="comment-author">{comment.author_name}</span>
+                    <div className="comment-author-info">
+                        <div className="comment-author-avatar">
+                            {comment.author_avatar_url ? (
+                                <img src={comment.author_avatar_url} alt="" />
+                            ) : (
+                                comment.author_name.charAt(0).toUpperCase()
+                            )}
+                        </div>
+                        <span className="comment-author">{comment.author_name}</span>
+                    </div>
                     <span className="comment-date">{new Date(comment.created_at).toLocaleDateString()}</span>
                 </div>
                 <div className="comment-content-wrapper">
