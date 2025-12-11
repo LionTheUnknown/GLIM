@@ -1,31 +1,127 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Post } from '@/app/actions'
 import FlameTimer from './flameTimer'
 import { Card } from 'primereact/card'
+import DevTools from './DevTools'
+import { isDevMode } from '@/utils/devMode'
+import api from '@/utils/api'
+import { toast } from '@/utils/toast'
+import { useRouter } from 'next/navigation'
 
-export default function Message({ post }: { post: Post }) {
+interface PostProps {
+  post: Post
+  onPostDeleted?: () => void
+  onPostUpdated?: () => void
+}
+
+export default function Message({ post, onPostDeleted, onPostUpdated }: PostProps) {
+  const router = useRouter()
+  const [devMode, setDevMode] = useState(false)
+
+  useEffect(() => {
+    setDevMode(isDevMode())
+    
+    const handleDevModeChange = (e: CustomEvent) => {
+      setDevMode(e.detail)
+    }
+    
+    window.addEventListener('devModeChanged', handleDevModeChange as EventListener)
+    
+    return () => {
+      window.removeEventListener('devModeChanged', handleDevModeChange as EventListener)
+    }
+  }, [])
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this post? (Dev Mode)')) {
+      return
+    }
+
+    try {
+      await api.delete(`/api/admin/posts/${post.post_id}`)
+      toast.success('Post deleted successfully')
+      if (onPostDeleted) {
+        onPostDeleted()
+      } else {
+        router.push('/home')
+      }
+    } catch (err) {
+      toast.error('Failed to delete post')
+      console.error('Delete error:', err)
+    }
+  }
+
+  const handleRevive = async (duration: number) => {
+    try {
+      await api.patch(`/api/admin/posts/${post.post_id}/revive`, {
+        duration_minutes: duration
+      })
+      toast.success(`Post revived for ${duration === 1 ? '1 minute' : duration === 60 ? '1 hour' : '1 day'}`)
+      if (onPostUpdated) {
+        onPostUpdated()
+      }
+    } catch (err) {
+      toast.error('Failed to revive post')
+      console.error('Revive error:', err)
+    }
+  }
+
+  const handlePin = async () => {
+    try {
+      await api.patch(`/api/admin/posts/${post.post_id}/pin`)
+      toast.success(post.pinned ? 'Post unpinned' : 'Post pinned')
+      if (onPostUpdated) {
+        onPostUpdated()
+      }
+    } catch (err) {
+      toast.error('Failed to toggle pin')
+      console.error('Pin error:', err)
+    }
+  }
+
+  const legacyCategory = (post as { category?: string | null }).category ?? null
+  const categoriesText = post.categories && post.categories.length > 0
+    ? post.categories.map((cat: { category_name: string }) => cat.category_name).join(', ')
+    : legacyCategory
+
   return (
-    <Card className="post-card">
-      <div className="post-grid">
-        <div className="post-author">
-          <div className="post-author-name">{post.author_name}</div>
-          {post.category && (
-            <div className="post-category">{post.category}</div>
+    <Card className={`post-card ${post.pinned ? 'post-pinned' : ''}`}>
+      {post.pinned && (
+        <div className="post-pinned-badge">📌 Pinned</div>
+      )}
+      <div className="post-content">
+        <div className="post-header">
+          <span className="post-author-name">{post.author_name}</span>
+          {categoriesText && (
+            <>
+              <span className="post-header-separator">|</span>
+              <span className="post-category">
+                {categoriesText}
+              </span>
+            </>
           )}
         </div>
-        <div className="post-author-divider"></div>
-        <div className="post-content">
-          <div className="post-content-wrapper">
-            <div className="post-text">
-              {post.content_text}
-            </div>
-            <div className="post-divider"></div>
-            <div className="post-flame-container">
-              <FlameTimer expiresAt={post.expires_at || null} />
-            </div>
+        <div className="post-content-wrapper">
+          <div className="post-text">
+            {post.content_text}
           </div>
+          <FlameTimer 
+            expiresAt={post.expires_at || null} 
+            postId={post.post_id}
+            userReaction={post.user_reaction_type || null}
+          />
         </div>
+        {devMode && (
+          <DevTools
+            postId={post.post_id}
+            onDelete={handleDelete}
+            onRevive={handleRevive}
+            onPin={handlePin}
+            isPinned={post.pinned}
+          />
+        )}
       </div>
     </Card>
   )

@@ -65,12 +65,26 @@
   white-space: nowrap;
 }
 
+.comment-content-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
 .comment-content {
   font-size: 0.875rem;
   color: var(--text-primary);
   white-space: pre-wrap;
   line-height: 1.6;
-  margin-bottom: 0.75rem;
+  flex: 1;
+}
+
+.comment-reaction-field {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .comment-actions {

@@ -35,80 +35,80 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
-.post-grid {
-  display: grid;
-  grid-template-columns: 150px 1px 1fr;
-  min-height: 100px;
-}
-
-.post-author {
-  padding: 0.75rem;
+.post-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
   gap: 0.5rem;
-  background: rgba(26, 26, 26, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.post-author-divider {
-  width: 1px;
-  background: rgba(42, 42, 42, 0.5);
-  align-self: stretch;
+  padding: 0.5rem 1rem 0.25rem 1rem;
+  font-size: 0.75rem;
 }
 
 .post-author-name {
-  font-weight: 700;
+  font-weight: 600;
   color: white;
-  font-size: 0.9rem;
-  text-align: center;
-  word-break: break-word;
+}
+
+.post-header-separator {
+  color: var(--text-muted);
 }
 
 .post-category {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  text-align: center;
-  padding: 0.25rem 0.5rem;
-  background: rgba(42, 42, 42, 0.3);
-  border-radius: 4px;
-  word-break: break-word;
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .post-content {
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   color: white;
   display: flex;
+  flex-direction: column;
   align-items: stretch;
+  gap: 0.5rem;
 }
 
 .post-content-wrapper {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   width: 100%;
+  flex-direction: row;
+  padding: 0 1rem 0.5rem 1rem;
 }
 
 .post-text {
   flex: 1;
   white-space: pre-wrap;
   word-wrap: break-word;
+  width: 100%;
 }
 
 .post-divider {
-  width: 1px;
-  background: rgba(42, 42, 42, 0.5);
-  align-self: stretch;
-  flex-shrink: 0;
+  display: none;
 }
 
 .post-flame-container {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   flex-shrink: 0;
   padding: 0.5rem;
+  width: 100%;
+}
+
+.post-pinned {
+  border-left: 4px solid var(--accent) !important;
+}
+
+.post-pinned-badge {
+  background: rgba(255, 107, 53, 0.2);
+  border: 1px solid rgba(255, 107, 53, 0.5);
+  color: var(--accent);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 0.75rem;
 }
 

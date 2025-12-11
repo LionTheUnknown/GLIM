@@ -9,3 +9,7 @@
 @import "./components/timer.css";
 @import "./components/flame-selector.css";
 @import "./components/flame-timer.css";
+@import "./components/header.css";
+@import "./components/footer.css";
+@import "./components/modal.css";
+@import "./components/dev-tools.css";

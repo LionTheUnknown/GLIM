@@ -34,7 +34,6 @@ api.interceptors.response.use(
         const originalRequest = error.config;
         const refreshToken = localStorage.getItem('refresh_token');
 
-        // Don't retry refresh endpoint itself
         if (originalRequest.url?.includes('/api/users/refresh')) {
             return Promise.reject(error);
         }
@@ -56,7 +55,6 @@ api.interceptors.response.use(
                 const { token: newAccessToken, refresh_token: newRefreshToken } = refreshResponse.data;
                 if (newAccessToken) {
                     localStorage.setItem('token', newAccessToken);
-                    // Update refresh token if a new one is provided
                     if (newRefreshToken) {
                         localStorage.setItem('refresh_token', newRefreshToken);
                     }
@@ -67,7 +65,6 @@ api.interceptors.response.use(
                 console.error('Refresh token failed:', refreshError);
                 localStorage.removeItem('token');
                 localStorage.removeItem('refresh_token');
-                // Redirect to login on refresh failure
                 if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
                     window.location.href = '/login';
                 }

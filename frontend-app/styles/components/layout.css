@@ -1,3 +1,10 @@
+.app-content {
+  flex: 1;
+  min-height: calc(100vh - 80px - 120px);
+  padding: 2rem 0;
+  width: 100%;
+}
+
 .page-container {
   max-width: 800px;
   margin: 0 auto;

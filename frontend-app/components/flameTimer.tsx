@@ -1,10 +1,16 @@
 'use client'
 
-import { useState, useEffect, ReactElement, useMemo } from 'react';
+import { useState, useEffect, ReactElement, useMemo, useRef } from 'react';
 import fireAnimation from '@/Fire (Remix).json';
+import api from '@/utils/api';
+import { toast } from '@/utils/toast';
+import { isAuthenticated } from '@/utils/auth';
 
 interface FlameTimerProps {
     expiresAt: string | null;
+    postId?: number;
+    onExpirationUpdate?: (newExpiresAt: string) => void;
+    userReaction?: 'like' | 'dislike' | null;
 }
 
 interface AnimationFrame {
@@ -23,16 +29,18 @@ const DURATION_RANGES = [
 const FRAME_RATE = 12;
 const FRAME_DURATION_MS = 1000 / FRAME_RATE;
 
-export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement {
+export default function FlameTimer({ expiresAt, postId, onExpirationUpdate, userReaction }: FlameTimerProps): ReactElement {
     const frames = useMemo(() => fireAnimation.frames as AnimationFrame[], []);
     
     const [timeRemaining, setTimeRemaining] = useState<number>(0);
     const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
     const [isExpired, setIsExpired] = useState<boolean>(false);
     const [currentFrameIndex, setCurrentFrameIndex] = useState<number>(0);
+    const [currentExpiresAt, setCurrentExpiresAt] = useState<string | null>(expiresAt);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const flameRef = useRef<HTMLDivElement>(null);
 
     const getFlameRange = (minutes: number, hasSeconds: boolean = false) => {
-        // If there are still seconds remaining (even if minutes is 0), use the first range
         if (minutes === 0 && hasSeconds) {
             return DURATION_RANGES[0];
         }
@@ -46,7 +54,11 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
     };
 
     useEffect(() => {
-        if (!expiresAt) {
+        setCurrentExpiresAt(expiresAt);
+    }, [expiresAt]);
+
+    useEffect(() => {
+        if (!currentExpiresAt) {
             setIsExpired(false);
             setTimeRemaining(0);
             setSecondsRemaining(0);
@@ -55,7 +67,7 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
 
         const updateTimer = () => {
             const now = new Date().getTime();
-            const expiration = new Date(expiresAt).getTime();
+            const expiration = new Date(currentExpiresAt).getTime();
             const difference = expiration - now;
 
             if (difference <= 0) {
@@ -78,41 +90,35 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
         const interval = setInterval(updateTimer, 1000);
 
         return () => clearInterval(interval);
-    }, [expiresAt]);
+    }, [currentExpiresAt]);
 
     useEffect(() => {
-        if (isExpired || !expiresAt || !frames.length) return;
+        if (isExpired || !currentExpiresAt || !frames.length) return;
 
         const hasSeconds = secondsRemaining > 0;
         const flameRange = getFlameRange(timeRemaining, hasSeconds);
         if (!flameRange) {
-            // If no range found but we have time remaining, use the first range as fallback
             const fallbackRange = DURATION_RANGES[0];
             setCurrentFrameIndex(fallbackRange.frameStart);
             return;
         }
         
-        // Always reset to the start of the current range when range changes
         setCurrentFrameIndex(flameRange.frameStart);
 
         const interval = setInterval(() => {
             setCurrentFrameIndex(prev => {
-                // Recalculate range in case it changed (e.g., crossed boundary from 61 to 60 minutes)
                 const currentHasSeconds = secondsRemaining > 0;
                 const currentRange = getFlameRange(timeRemaining, currentHasSeconds);
                 
-                // If range changed, reset to new range start
                 if (!currentRange) {
                     const fallbackRange = DURATION_RANGES[0];
                     return fallbackRange.frameStart;
                 }
                 
-                // If we're outside the current range bounds, reset to range start
                 if (prev < currentRange.frameStart || prev > currentRange.frameEnd) {
                     return currentRange.frameStart;
                 }
                 
-                // Continue animation within current range
                 const relativeIndex = prev - currentRange.frameStart;
                 const nextRelativeIndex = (relativeIndex + 1) % (currentRange.frameEnd - currentRange.frameStart + 1);
                 return currentRange.frameStart + nextRelativeIndex;
@@ -120,10 +126,55 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
         }, FRAME_DURATION_MS);
 
         return () => clearInterval(interval);
-    }, [isExpired, expiresAt, timeRemaining, secondsRemaining, frames.length]);
+    }, [isExpired, currentExpiresAt, timeRemaining, secondsRemaining, frames.length]);
 
-    // Always show timer - if no expiration, show expired state
-    if (!expiresAt) {
+    const handleFlameClick = async (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!postId || isSubmitting || !isAuthenticated()) {
+            if (!isAuthenticated()) {
+                toast.error('Please log in to react');
+            }
+            return;
+        }
+
+        if (!flameRef.current) return;
+
+        const rect = flameRef.current.getBoundingClientRect();
+        const clickY = e.clientY - rect.top;
+        const height = rect.height;
+        const isTopHalf = clickY < height / 2;
+
+        const reactionType = isTopHalf ? 'like' : 'dislike';
+        setIsSubmitting(true);
+
+        try {
+            const response = await api.post(
+                `/api/posts/${postId}/reactions`,
+                { reaction_type: reactionType }
+            );
+
+            if (response.data.expires_at) {
+                setCurrentExpiresAt(response.data.expires_at);
+                if (onExpirationUpdate) {
+                    onExpirationUpdate(response.data.expires_at);
+                }
+            } else {
+                const postResponse = await api.get(`/api/posts/${postId}`);
+                if (postResponse.data.expires_at) {
+                    setCurrentExpiresAt(postResponse.data.expires_at);
+                    if (onExpirationUpdate) {
+                        onExpirationUpdate(postResponse.data.expires_at);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error handling reaction:', error);
+            toast.error('Failed to update reaction', 'Please try again');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (!currentExpiresAt) {
         return (
             <div className="flame-timer expired">
                 <div className="flame-timer-flame">
@@ -179,9 +230,25 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
     const currentFrame = frames[validFrameIndex];
     const currentFlame = currentFrame?.content || currentFrame?.contentString?.split('\n') || [];
 
+    const getBorderColor = () => {
+        if (!userReaction) return 'rgba(42, 42, 42, 0.5)';
+        return userReaction === 'like' ? 'rgba(34, 197, 94, 0.4)' : 'rgba(239, 68, 68, 0.4)';
+    };
+
     return (
         <div className="flame-timer">
-            <div className="flame-timer-flame">
+            <div 
+                ref={flameRef}
+                className="flame-timer-flame"
+                onClick={handleFlameClick}
+                style={{ 
+                    cursor: postId && isAuthenticated() ? 'pointer' : 'default',
+                    opacity: isSubmitting ? 0.7 : 1,
+                    position: 'relative',
+                    borderColor: getBorderColor(),
+                    transition: 'border-color 0.2s'
+                }}
+            >
                 {currentFlame.length > 0 ? (
                     <pre 
                         className="flame-timer-ascii"
@@ -189,11 +256,44 @@ export default function FlameTimer({ expiresAt }: FlameTimerProps): ReactElement
                             color: getFlameColor(),
                             textShadow: `0 0 8px ${getFlameColor()}, 0 0 16px ${getFlameColor()}`,
                             filter: `drop-shadow(0 0 6px ${getFlameColor()})`,
+                            pointerEvents: 'none'
                         }}
                     >
                         {currentFlame.join('\n')}
                     </pre>
                 ) : null}
+                {postId && isAuthenticated() && (
+                    <>
+                        <div 
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: '50%',
+                                backgroundColor: userReaction === 'like' ? 'rgba(34, 197, 94, 0.08)' : 'transparent',
+                                borderTopLeftRadius: '50%',
+                                borderTopRightRadius: '50%',
+                                pointerEvents: 'none',
+                                transition: 'background-color 0.2s'
+                            }}
+                        />
+                        <div 
+                            style={{
+                                position: 'absolute',
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                height: '50%',
+                                backgroundColor: userReaction === 'dislike' ? 'rgba(239, 68, 68, 0.08)' : 'transparent',
+                                borderBottomLeftRadius: '50%',
+                                borderBottomRightRadius: '50%',
+                                pointerEvents: 'none',
+                                transition: 'background-color 0.2s'
+                            }}
+                        />
+                    </>
+                )}
             </div>
             <span className="flame-timer-label">{formatTime()}</span>
         </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import axios, { AxiosError } from 'axios';
 import api from '@/utils/api';
 import { PostList } from '../../components/post-list';
@@ -12,7 +11,6 @@ import { Button } from 'primereact/button';
 import { toast } from '@/utils/toast';
 
 const HomePage = () => {
-    const router = useRouter();
     const [posts, setPosts] = useState<Posts>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -80,21 +78,12 @@ const HomePage = () => {
     if (posts.length === 0) {
         return (
             <div className="page-container">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <h1 className="home-title">GLIM</h1>
-                    {!isLoggedIn && (
-                        <Button
-                            label="Login"
-                            icon="pi pi-sign-in"
-                            onClick={() => router.push('/login')}
-                        />
-                    )}
-                </div>
                 <div className="home-content">
                     {isLoggedIn && <PostForm onPostCreated={fetchPosts} />}
                     <p className="empty-posts-message">
                         No posts found. {isLoggedIn ? 'Start posting!' : 'Log in to create posts!'}
                     </p>
+                    <PostList posts={[]} onPostDeleted={fetchPosts} onPostUpdated={fetchPosts} />
                 </div>
             </div>
         );
@@ -102,19 +91,9 @@ const HomePage = () => {
 
     return (
         <div className="page-container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h1 className="home-title">GLIM</h1>
-                {!isLoggedIn && (
-                    <Button
-                        label="Login"
-                        icon="pi pi-sign-in"
-                        onClick={() => router.push('/login')}
-                    />
-                )}
-            </div>
             <div className="home-content">
                 {isLoggedIn && <PostForm onPostCreated={fetchPosts} />}
-                <PostList posts={posts} />
+                <PostList posts={posts} onPostDeleted={fetchPosts} onPostUpdated={fetchPosts} />
             </div>
         </div>
     );

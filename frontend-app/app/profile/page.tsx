@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/utils/api';
 import { isAuthenticated } from '@/utils/auth';
@@ -13,6 +13,7 @@ interface UserProfile {
     username: string;
     display_name: string;
     bio: string;
+    avatar_url?: string | null;
 }
 
 export default function ProfilePage() {
@@ -20,6 +21,9 @@ export default function ProfilePage() {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const [removing, setRemoving] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const fetchProfile = useCallback(async () => {
         try {
@@ -36,6 +40,57 @@ export default function ProfilePage() {
             setLoading(false);
         }
     }, []);
+
+    const handleSelectFile = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+        if (!allowed.includes(file.type)) {
+            toast.error('Invalid file type', 'Please upload png, jpg, jpeg, or webp.');
+            e.target.value = '';
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('File too large', 'Max size is 5MB.');
+            e.target.value = '';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        setUploading(true);
+        try {
+            const res = await api.post('/api/users/me/avatar', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setProfile(res.data);
+            toast.success('Avatar updated');
+        } catch (_err) {
+            toast.error('Upload failed', 'Could not upload avatar.');
+        } finally {
+            setUploading(false);
+            e.target.value = '';
+        }
+    };
+
+    const handleRemoveAvatar = async () => {
+        setRemoving(true);
+        try {
+            await api.delete('/api/users/me/avatar');
+            setProfile(prev => (prev ? { ...prev, avatar_url: null } : prev));
+            toast.success('Avatar removed');
+        } catch (_err) {
+            toast.error('Remove failed', 'Could not remove avatar.');
+        } finally {
+            setRemoving(false);
+        }
+    };
 
     useEffect(() => {
         if (!isAuthenticated()) {
@@ -111,7 +166,11 @@ export default function ProfilePage() {
             <Card className="profile-card">
                 <div className="profile-header">
                     <div className="profile-avatar">
-                        {profile.username.charAt(0).toUpperCase()}
+                        {profile.avatar_url ? (
+                            <img src={profile.avatar_url} alt="avatar" />
+                        ) : (
+                            profile.username.charAt(0).toUpperCase()
+                        )}
                     </div>
                     <h1 className="profile-name">
                         {profile.display_name || profile.username}
@@ -133,6 +192,30 @@ export default function ProfilePage() {
                 )}
 
                 <div className="profile-actions">
+                    <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                        onChange={handleFileChange}
+                    />
+                    <Button
+                        label="Change Avatar"
+                        icon="pi pi-image"
+                        onClick={handleSelectFile}
+                        loading={uploading}
+                        disabled={uploading}
+                        className="profile-action-btn"
+                    />
+                    <Button
+                        label="Remove Avatar"
+                        icon="pi pi-trash"
+                        onClick={handleRemoveAvatar}
+                        outlined
+                        loading={removing}
+                        disabled={removing || !profile.avatar_url}
+                        className="profile-action-btn"
+                    />
                     <Button
                         label="Back to Feed"
                         icon="pi pi-home"
@@ -143,7 +226,7 @@ export default function ProfilePage() {
                     <Button
                         label="Logout"
                         icon="pi pi-sign-out"
-                        onClick={() => {
+                        onClick={async () => {
                             localStorage.removeItem('token');
                             localStorage.removeItem('refresh_token');
                             toast.info('Logged out successfully');

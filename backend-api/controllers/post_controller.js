@@ -8,11 +8,11 @@ exports.getAllPosts = async (req, res) => {
         const result = await pool.query(`
             SELECT DISTINCT posts.post_id, posts.content_text, posts.category_id, 
                 users.display_name AS author_name, 
-                posts.created_at, posts.expires_at, posts.media_url
+                posts.created_at, posts.expires_at, posts.media_url, posts.pinned
             FROM posts
             JOIN users ON posts.author_id = users.user_id 
             WHERE posts.expires_at IS NULL OR posts.expires_at > CURRENT_TIMESTAMP
-            ORDER BY posts.created_at DESC
+            ORDER BY posts.pinned DESC, posts.created_at DESC
         `);
 
         if (result.rows.length === 0) {
@@ -56,7 +56,7 @@ exports.getAllPosts = async (req, res) => {
 
         if (postIds.length > 0) {
             const categoriesResult = await pool.query(`
-                SELECT pc.post_id, c.category_name
+                SELECT pc.post_id, c.category_id, c.category_name
                 FROM post_categories pc
                 JOIN categories c ON pc.category_id = c.category_id
                 WHERE pc.post_id = ANY($1::int[])
@@ -67,7 +67,10 @@ exports.getAllPosts = async (req, res) => {
                 if (!categoriesMap.has(row.post_id)) {
                     categoriesMap.set(row.post_id, []);
                 }
-                categoriesMap.get(row.post_id).push(row.category_name);
+                categoriesMap.get(row.post_id).push({
+                    category_id: row.category_id,
+                    category_name: row.category_name
+                });
             });
         }
 
@@ -78,10 +81,11 @@ exports.getAllPosts = async (req, res) => {
                 post_id: postId,
                 author_name: record.author_name,
                 content_text: record.content_text,
-                category: categories.length > 0 ? categories.join(', ') : null,
+                categories: categories,
                 created_at: record.created_at,
                 expires_at: record.expires_at,
                 media_url: record.media_url,
+                pinned: record.pinned || false,
                 reaction_counts: countsMap[postId] || { like_count: 0, dislike_count: 0 },
                 user_reaction_type: userReactionsMap[postId] || null,
             };
@@ -248,6 +252,7 @@ const formatPost = (post, reactionCounts, userReactionType) => {
         created_at,
         category_name,
         expires_at,
+        pinned,
     } = post;
 
     return {
@@ -257,8 +262,9 @@ const formatPost = (post, reactionCounts, userReactionType) => {
         author_id,
         author_name,
         created_at,
-        category: category_name || null,
+        categories: post.categories || [],
         expires_at,
+        pinned: pinned || false,
         reaction_counts: reactionCounts,
         user_reaction_type: userReactionType,
     };
@@ -309,7 +315,7 @@ exports.getPostById = async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 p.post_id, p.content_text, p.media_url, p.author_id, 
-                p.created_at, p.category_id, p.expires_at, u.username AS display_name
+                p.created_at, p.category_id, p.expires_at, p.pinned, u.username AS display_name
             FROM posts p
             INNER JOIN users u ON p.author_id = u.user_id
             WHERE p.post_id = $1 AND (p.expires_at IS NULL OR p.expires_at > CURRENT_TIMESTAMP)
@@ -321,15 +327,18 @@ exports.getPostById = async (req, res) => {
         }
 
         const categoriesResult = await pool.query(`
-            SELECT c.category_name
+            SELECT c.category_id, c.category_name
             FROM post_categories pc
             JOIN categories c ON pc.category_id = c.category_id
             WHERE pc.post_id = $1
             ORDER BY c.category_name
         `, [postId]);
 
-        const categories = categoriesResult.rows.map(row => row.category_name);
-        post.category_name = categories.length > 0 ? categories.join(', ') : null;
+        const categories = categoriesResult.rows.map(row => ({
+            category_id: row.category_id,
+            category_name: row.category_name
+        }));
+        post.categories = categories;
 
         const metadata = await fetchPostMetadata(postId, userId);
         res.status(200).json(formatPost(post, metadata.counts, metadata.userReaction));
@@ -347,13 +356,13 @@ exports.getPostsByCategory = async (req, res) => {
 
     try {
         const result = await pool.query(`
-            SELECT DISTINCT p.post_id, p.content_text, p.media_url, p.created_at, p.expires_at,
+            SELECT DISTINCT p.post_id, p.content_text, p.media_url, p.created_at, p.expires_at, p.pinned,
                    u.display_name AS author_name
             FROM posts p
             JOIN users u ON p.author_id = u.user_id 
             JOIN post_categories pc ON p.post_id = pc.post_id
             WHERE pc.category_id = $1 AND (p.expires_at IS NULL OR p.expires_at > CURRENT_TIMESTAMP)
-            ORDER BY p.created_at DESC
+            ORDER BY p.pinned DESC, p.created_at DESC
         `, [categoryId]);
 
         if (result.rows.length === 0) {
@@ -396,7 +405,7 @@ exports.getPostsByCategory = async (req, res) => {
 
             const categoriesMap = new Map();
             const categoriesResult = await pool.query(`
-                SELECT pc.post_id, c.category_name
+                SELECT pc.post_id, c.category_id, c.category_name
                 FROM post_categories pc
                 JOIN categories c ON pc.category_id = c.category_id
                 WHERE pc.post_id = ANY($1::int[])
@@ -407,7 +416,10 @@ exports.getPostsByCategory = async (req, res) => {
                 if (!categoriesMap.has(row.post_id)) {
                     categoriesMap.set(row.post_id, []);
                 }
-                categoriesMap.get(row.post_id).push(row.category_name);
+                categoriesMap.get(row.post_id).push({
+                    category_id: row.category_id,
+                    category_name: row.category_name
+                });
             });
 
             const formattedPosts = result.rows.map(record => {
@@ -418,10 +430,11 @@ exports.getPostsByCategory = async (req, res) => {
                     post_id: record.post_id,
                     author_name: record.author_name,
                     content_text: record.content_text,
-                    category: categories.length > 0 ? categories.join(', ') : null,
+                    categories: categories,
                     media_url: record.media_url,
                     created_at: record.created_at,
                     expires_at: record.expires_at,
+                    pinned: record.pinned || false,
                     reaction_counts: counts,
                     user_reaction_type: userReaction,
                 };

@@ -3,6 +3,7 @@
 import { ReactElement, useState } from 'react'
 import { Comment } from '@/app/actions' 
 import { CommentForm } from '@/components/commentForm'
+import CommentReactionField from './commentReactionField'
 
 interface PostCommentsSectionProps {
     postId: number;
@@ -33,7 +34,17 @@ const CommentItem = ({ comment, postId, comments, token, fetchComments }: {
                     <span className="comment-author">{comment.author_name}</span>
                     <span className="comment-date">{new Date(comment.created_at).toLocaleDateString()}</span>
                 </div>
-                <p className="comment-content">{comment.content_text}</p>
+                <div className="comment-content-wrapper">
+                    <p className="comment-content">{comment.content_text}</p>
+                    {comment.reaction_counts && (
+                        <CommentReactionField
+                            postId={postId}
+                            commentId={comment.comment_id}
+                            initialCounts={comment.reaction_counts}
+                            initialUserReaction={comment.user_reaction_type || null}
+                        />
+                    )}
+                </div>
                 <div className="comment-actions">
                     <button 
                         onClick={() => setReplyingTo(comment.comment_id)} 

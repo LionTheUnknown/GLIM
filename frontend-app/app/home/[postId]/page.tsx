@@ -32,7 +32,50 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
         setLoadingComments(true);
         try {
             const response = await api.get(`${API_BASE_URL}/api/posts/${postId}/comments`);
-            setComments(response.data);
+            const commentsData = response.data;
+            
+            // Fetch reaction data for each comment
+            const token = localStorage.getItem('token');
+            const commentsWithReactions = await Promise.all(
+                commentsData.map(async (comment: Comment) => {
+                    try {
+                        // Fetch reaction counts
+                        const countsResponse = await api.get(
+                            `${API_BASE_URL}/api/posts/${postId}/comments/${comment.comment_id}/reactions`
+                        );
+                        
+                        let userReaction: 'like' | 'dislike' | null = null;
+                        if (token) {
+                            try {
+                                // Fetch user's reaction if authenticated
+                                const userReactionResponse = await axios.get(
+                                    `${API_BASE_URL}/api/posts/${postId}/comments/${comment.comment_id}/reactions/me`,
+                                    { headers: { Authorization: `Bearer ${token}` } }
+                                );
+                                userReaction = userReactionResponse.data?.user_reaction_type || null;
+                            } catch (_err) {
+                                // 404 means no reaction, which is fine
+                                userReaction = null;
+                            }
+                        }
+                        
+                        return {
+                            ...comment,
+                            reaction_counts: countsResponse.data || { like_count: 0, dislike_count: 0 },
+                            user_reaction_type: userReaction
+                        };
+                    } catch (_err) {
+                        // If reaction fetch fails, return comment without reactions
+                        return {
+                            ...comment,
+                            reaction_counts: { like_count: 0, dislike_count: 0 },
+                            user_reaction_type: null
+                        };
+                    }
+                })
+            );
+            
+            setComments(commentsWithReactions);
         } catch (err) {
             console.error("Failed to load comments:", err);
             setComments([]);
@@ -102,10 +145,22 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
         );
     }
 
+    const handlePostDeleted = () => {
+        router.push('/home')
+    }
+
+    const handlePostUpdated = () => {
+        loadPostData()
+    }
+
     return (
         <div className="page-container">
             <div className="card post-detail-card">
-                <HighlightedPost post={postData} />
+                <HighlightedPost 
+                    post={postData} 
+                    onPostDeleted={handlePostDeleted}
+                    onPostUpdated={handlePostUpdated}
+                />
                 <PostCommentsSection
                     postId={postData.post_id}
                     comments={comments}

@@ -14,6 +14,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const LoginPage = () => {
     const router = useRouter();
     const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         identifier: '',
         password: '',
@@ -35,6 +36,8 @@ const LoginPage = () => {
             toast.error('Validation error', 'Please fill in username or email and password');
             return;
         }
+
+        setLoading(true);
 
         try {
             const endpoint = `${API_BASE_URL}/api/users/login`;
@@ -73,6 +76,8 @@ const LoginPage = () => {
             }
 
             toast.error('Login failed', errorMessage);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -80,6 +85,7 @@ const LoginPage = () => {
         <div className="auth-container">
             <Card 
                 title="Login To Your Account"
+                className="auth-card"
                 style={{ maxWidth: '400px', width: '100%' }}
             >
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -98,6 +104,7 @@ const LoginPage = () => {
                         <label htmlFor="password" className="p-label">Password</label>
                         <Password
                             id="password"
+                            inputId="password"
                             value={formData.password}
                             onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                             required
@@ -111,6 +118,8 @@ const LoginPage = () => {
                         type="submit" 
                         label="Login"
                         icon="pi pi-sign-in"
+                        loading={loading}
+                        disabled={loading}
                         style={{ width: '100%' }}
                     />
                 </form>

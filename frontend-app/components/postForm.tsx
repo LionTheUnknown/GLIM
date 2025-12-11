@@ -23,10 +23,11 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
     const [formData, setFormData] = useState({
         categoryIds: [] as number[],
         contentText: '',
-        expirationDuration: '1' // Default to 1 minute
+        expirationDuration: '1'
     })
     const [categories, setCategories] = useState<Category[]>([])
     const [loadingCategories, setLoadingCategories] = useState(false)
+    const [loading, setLoading] = useState(false)
     const flameSelectorRef = useRef<HTMLDivElement>(null)
 
     const fetchCategories = useCallback(async () => {
@@ -36,7 +37,6 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
             setCategories(response.data)
         } catch (err) {
             console.error('Error fetching categories:', err)
-            // Don't show error to user - categories are optional
         } finally {
             setLoadingCategories(false)
         }
@@ -96,6 +96,8 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
             return
         }
 
+        setLoading(true)
+
         try {
             const endpoint = '/api/posts'
 
@@ -122,29 +124,22 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
             }
 
             toast.error('Failed to create post', errorMessage)
+        } finally {
+            setLoading(false)
         }
     }
 
     const header = (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', margin: 0 }}>
-                Create New Post
-            </h2>
-            <Button
-                label="My Profile"
-                icon="pi pi-user"
-                onClick={() => router.push('/profile')}
-                outlined
-                size="small"
-            />
-        </div>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: '700', margin: 0 }}>
+            Create new Light
+        </h2>
     )
 
     return (
         <Card header={header} className="post-form-card" style={{ marginBottom: '2rem' }}>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
                         <div className="p-field">
                             <label htmlFor="contentText" className="p-label">What&apos;s on your mind?</label>
                             <InputTextarea
@@ -169,6 +164,7 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
                                 disabled={!isLoggedIn || loadingCategories}
                                 loading={loadingCategories}
                                 display="chip"
+                                className="categories-multiselect"
                                 style={{ width: '100%' }}
                             />
                         </div>
@@ -187,8 +183,9 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
                     type="submit" 
                     label={isLoggedIn ? 'Post' : 'Log in to Post'}
                     icon="pi pi-send"
-                    disabled={!isLoggedIn}
-                    style={{ width: '100%' }}
+                    loading={loading}
+                    disabled={!isLoggedIn || loading}
+                    style={{ width: '100%', marginTop: '0.25rem' }}
                 />
             </form>
         </Card>

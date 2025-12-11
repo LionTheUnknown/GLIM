@@ -1,8 +1,15 @@
 "use client";
 
+import { usePathname } from 'next/navigation';
 import Plasma from './Plasma';
 
 export default function PlasmaBackground() {
+  const pathname = usePathname();
+  
+  if (pathname === '/home' || pathname === '/') {
+    return null;
+  }
+  
   return (
     <div
       style={{

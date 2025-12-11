@@ -14,6 +14,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const RegisterPage = () => {
     const router = useRouter();
     const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -43,6 +44,8 @@ const RegisterPage = () => {
             return;
         }
 
+        setLoading(true);
+
         try {
             const endpoint = `${API_BASE_URL}/api/users/register`;
             
@@ -71,6 +74,8 @@ const RegisterPage = () => {
             }
             
             toast.error('Registration failed', errorMessage);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -78,6 +83,7 @@ const RegisterPage = () => {
         <div className="auth-container">
             <Card 
                 title="Create Your Account"
+                className="auth-card"
                 style={{ maxWidth: '400px', width: '100%' }}
             >
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -108,6 +114,7 @@ const RegisterPage = () => {
                         <label htmlFor="password" className="p-label">Password</label>
                         <Password
                             id="password"
+                            inputId="password"
                             value={formData.password}
                             onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                             required
@@ -121,6 +128,7 @@ const RegisterPage = () => {
                         <label htmlFor="confirmPassword" className="p-label">Confirm Password</label>
                         <Password
                             id="confirmPassword"
+                            inputId="confirmPassword"
                             value={formData.confirmPassword}
                             onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                             required
@@ -134,6 +142,8 @@ const RegisterPage = () => {
                         type="submit" 
                         label="Register"
                         icon="pi pi-user-plus"
+                        loading={loading}
+                        disabled={loading}
                         style={{ width: '100%' }}
                     />
                 </form>
