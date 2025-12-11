@@ -6,7 +6,7 @@ import Plasma from './Plasma';
 export default function PlasmaBackground() {
   const pathname = usePathname();
   
-  if (pathname === '/home' || pathname === '/') {
+  if (pathname === '/home' || pathname === '/' || pathname === '/profile') {
     return null;
   }
   
