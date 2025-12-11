@@ -19,7 +19,8 @@ interface PostWithReactions extends PostType {
 }
 
 export default function PostPage({ params }: { params: Promise<{ postId: string }> }): ReactElement {
-    const { postId } = use(params);
+    const unwrappedParams = use(params);
+    const { postId } = unwrappedParams;
     const router = useRouter();
     const [postData, setPostData] = useState<PostWithReactions | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);

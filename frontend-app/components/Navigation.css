@@ -75,15 +75,33 @@
   padding: 0.75rem 1rem !important;
   border-radius: 6px !important;
   transition: all 0.2s !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--text-primary) !important;
+}
+
+.mobile-menu .p-button .p-button-icon {
+  color: var(--text-secondary) !important;
+  transition: color 0.2s !important;
 }
 
 .mobile-menu .p-button:hover {
-  background: rgba(42, 42, 42, 0.5) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.mobile-menu .p-button:hover .p-button-icon {
+  color: var(--accent) !important;
 }
 
 .mobile-menu .p-button.active {
-  background: rgba(255, 107, 53, 0.2) !important;
-  border-color: var(--accent) !important;
+  background: rgba(255, 107, 53, 0.1) !important;
+  border-color: rgba(255, 107, 53, 0.3) !important;
+  color: var(--accent) !important;
+}
+
+.mobile-menu .p-button.active .p-button-icon {
+  color: var(--accent) !important;
 }
 
 .mobile-menu-divider {

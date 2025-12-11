@@ -17,7 +17,8 @@ export default function CommentPage({
 }: {
     params: Promise<{ postId: string; commentId: string }>;
 }) {
-    const { postId, commentId } = use(params);
+    const unwrappedParams = use(params);
+    const { postId, commentId } = unwrappedParams;
     const router = useRouter();
     const [commentData, setCommentData] = useState<CommentWithReplies | null>(null);
     const [replies, setReplies] = useState<Comment[]>([]);

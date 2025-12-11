@@ -1,8 +1,17 @@
 'use client'
 
 import { ReactElement } from 'react'
+import { usePathname } from 'next/navigation'
 
-export default function Footer(): ReactElement {
+const HIDE_FOOTER_PATHS = ['/login', '/register']
+
+export default function Footer(): ReactElement | null {
+    const pathname = usePathname()
+
+    if (pathname && HIDE_FOOTER_PATHS.some(p => pathname.startsWith(p))) {
+        return null
+    }
+
     return (
         <footer className="app-footer">
             <div className="footer-container">
@@ -16,4 +25,3 @@ export default function Footer(): ReactElement {
         </footer>
     )
 }
-

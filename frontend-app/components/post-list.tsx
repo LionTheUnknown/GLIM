@@ -74,25 +74,25 @@ export function PostList({ posts, onPostDeleted, onPostUpdated }: { posts : Post
         );
     }
     
-        return (
-            <div className="post-list-container">
-                {visiblePosts.map((postItem) => (
-                    <div
-                        key={postItem.post_id}
-                        className={`post-list-item ${expiringPosts.has(postItem.post_id) ? 'post-expiring' : ''}`}
+    return (
+        <div className="post-list-container">
+            {visiblePosts.map((postItem) => (
+                <div
+                    key={postItem.post_id}
+                    className={`post-list-item ${expiringPosts.has(postItem.post_id) ? 'post-expiring' : ''}`}
+                >
+                    <Link 
+                        href={`/home/${postItem.post_id}`}
+                        style={{ textDecoration: 'none', display: 'block' }}
                     >
-                        <Link 
-                            href={`/home/${postItem.post_id}`}
-                            style={{ textDecoration: 'none', display: 'block' }}
-                        >
-                            <Post 
-                                post={postItem}
-                                onPostDeleted={onPostDeleted || (() => router.refresh())}
-                                onPostUpdated={onPostUpdated || (() => router.refresh())}
-                            />
-                        </Link>
-                    </div>
-                ))}
-            </div>
-        );
+                        <Post 
+                            post={postItem}
+                            onPostDeleted={onPostDeleted || (() => router.refresh())}
+                            onPostUpdated={onPostUpdated || (() => router.refresh())}
+                        />
+                    </Link>
+                </div>
+            ))}
+        </div>
+    );
 }

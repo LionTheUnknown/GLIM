@@ -23,6 +23,11 @@ export default function Modal({ visible, onHide, title, children, footer, classN
         />
     )
 
+    const stopPropagation = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        e.preventDefault()
+    }
+
     return (
         <Dialog
             visible={visible}
@@ -32,6 +37,9 @@ export default function Modal({ visible, onHide, title, children, footer, classN
             className={`custom-modal ${className || ''}`}
             modal
             dismissableMask
+            onClick={stopPropagation}
+            onMouseDown={stopPropagation}
+            appendTo={typeof document !== 'undefined' ? document.body : undefined}
         >
             {children}
         </Dialog>

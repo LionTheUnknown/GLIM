@@ -1,9 +1,9 @@
 'use client'
 
 import { ReactElement, useState, useEffect } from 'react'
-import { Button } from 'primereact/button'
 import Modal from './Modal'
-import { isDevMode } from '@/utils/devMode'
+import { Button } from 'primereact/button'
+import { isAdmin } from '@/utils/auth'
 
 interface RevivePostModalProps {
     visible: boolean
@@ -81,27 +81,28 @@ interface DevToolsProps {
 }
 
 export default function DevTools({ postId, onDelete, onRevive, onPin, isPinned }: DevToolsProps): ReactElement {
-    const [devMode, setDevMode] = useState(false)
+    const [isAdminUser, setIsAdminUser] = useState(false)
     const [reviveModalVisible, setReviveModalVisible] = useState(false)
     const [loadingDelete, setLoadingDelete] = useState(false)
     const [loadingRevive, setLoadingRevive] = useState(false)
     const [loadingPin, setLoadingPin] = useState(false)
 
     useEffect(() => {
-        setDevMode(isDevMode())
+        setIsAdminUser(isAdmin())
         
-        const handleDevModeChange = (e: CustomEvent) => {
-            setDevMode(e.detail)
+        // Listen for storage changes (login/logout)
+        const handleStorageChange = () => {
+            setIsAdminUser(isAdmin())
         }
         
-        window.addEventListener('devModeChanged', handleDevModeChange as EventListener)
+        window.addEventListener('storage', handleStorageChange)
         
         return () => {
-            window.removeEventListener('devModeChanged', handleDevModeChange as EventListener)
+            window.removeEventListener('storage', handleStorageChange)
         }
     }, [])
 
-    if (!devMode) return <></>
+    if (!isAdminUser) return <></>
 
     const handleRevive = async (duration: number) => {
         if (onRevive) {
@@ -136,39 +137,52 @@ export default function DevTools({ postId, onDelete, onRevive, onPin, isPinned }
         }
     }
 
+    const handleDeleteClick = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        handleDelete()
+    }
+
+    const handleReviveClick = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setReviveModalVisible(true)
+    }
+
+    const handlePinClick = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        handlePin()
+    }
+
     return (
         <>
             <div className="dev-tools">
-                <Button
-                    icon="pi pi-trash"
-                    onClick={handleDelete}
-                    severity="danger"
-                    size="small"
-                    outlined
-                    loading={loadingDelete}
+                <button
+                    className="dev-tools-btn dev-tools-btn-danger"
+                    onClick={handleDeleteClick}
                     disabled={loadingDelete}
-                    title="Delete post (dev mode)"
-                />
-                <Button
-                    icon="pi pi-refresh"
-                    onClick={() => setReviveModalVisible(true)}
-                    severity="warning"
-                    size="small"
-                    outlined
-                    loading={loadingRevive}
+                    title="Delete post (admin)"
+                >
+                    <i className={loadingDelete ? "pi pi-spin pi-spinner" : "pi pi-trash"} />
+                </button>
+                <button
+                    className="dev-tools-btn dev-tools-btn-warning"
+                    onClick={handleReviveClick}
                     disabled={loadingRevive}
-                    title="Revive post (dev mode)"
-                />
-                <Button
-                    icon={isPinned ? "pi pi-bookmark-fill" : "pi pi-bookmark"}
-                    onClick={handlePin}
-                    severity={isPinned ? "success" : "secondary"}
-                    size="small"
-                    outlined
-                    loading={loadingPin}
+                    title="Revive post (admin)"
+                >
+                    <i className={loadingRevive ? "pi pi-spin pi-spinner" : "pi pi-refresh"} />
+                </button>
+                <button
+                    className="dev-tools-btn dev-tools-btn-pin"
+                    onClick={handlePinClick}
                     disabled={loadingPin}
-                    title={isPinned ? "Unpin post (dev mode)" : "Pin post (dev mode)"}
-                />
+                    title={isPinned ? "Unpin post (admin)" : "Pin post (admin)"}
+                    data-pinned={isPinned}
+                >
+                    <i className={loadingPin ? "pi pi-spin pi-spinner" : isPinned ? "pi pi-bookmark-fill" : "pi pi-bookmark"} />
+                </button>
             </div>
             <RevivePostModal
                 visible={reviveModalVisible}

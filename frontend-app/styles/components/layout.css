@@ -1,20 +1,18 @@
 .app-content {
   flex: 1;
-  min-height: calc(100vh - 80px - 120px);
-  padding: 2rem 0;
+  padding: 0.75rem 0 0.5rem;
   width: 100%;
 }
 
 .page-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 1rem 0.75rem;
 }
 
 .home-content {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
   width: 100%;
 }
-

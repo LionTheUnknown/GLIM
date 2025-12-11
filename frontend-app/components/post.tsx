@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useEffect, ReactElement } from 'react'
+import { ReactElement } from 'react'
 import { Post as PostType } from '@/app/actions'
 import FlameTimer from './flameTimer'
 import { Card } from 'primereact/card'
 import DevTools from './DevTools'
-import { isDevMode } from '@/utils/devMode'
 import api from '@/utils/api'
 import { toast } from '@/utils/toast'
 import { useRouter } from 'next/navigation'
@@ -19,21 +18,6 @@ interface PostProps {
 
 export default function Post({ post, onPostDeleted, onPostUpdated, highlighted = false }: PostProps): ReactElement {
   const router = useRouter()
-  const [devMode, setDevMode] = useState(false)
-
-  useEffect(() => {
-    setDevMode(isDevMode())
-    
-    const handleDevModeChange = (e: CustomEvent) => {
-      setDevMode(e.detail)
-    }
-    
-    window.addEventListener('devModeChanged', handleDevModeChange as EventListener)
-    
-    return () => {
-      window.removeEventListener('devModeChanged', handleDevModeChange as EventListener)
-    }
-  }, [])
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this post? (Dev Mode)')) {
@@ -129,15 +113,13 @@ export default function Post({ post, onPostDeleted, onPostUpdated, highlighted =
             onExpirationUpdate={onPostUpdated ? () => onPostUpdated() : undefined}
           />
         </div>
-        {devMode && (
-          <DevTools
-            postId={post.post_id}
-            onDelete={handleDelete}
-            onRevive={handleRevive}
-            onPin={handlePin}
-            isPinned={post.pinned}
-          />
-        )}
+        <DevTools
+          postId={post.post_id}
+          onDelete={handleDelete}
+          onRevive={handleRevive}
+          onPin={handlePin}
+          isPinned={post.pinned}
+        />
       </div>
     </Card>
   )
