@@ -1,0 +1,2799 @@
+openapi: 3.0.3
+info:
+  title: Glim API
+  description: |
+    REST API for Glim - a social media platform with ephemeral posts.
+    Posts have expiration times that can be extended or shortened based on user reactions.
+  version: 1.0.0
+  contact:
+    name: Glim Support
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+tags:
+  - name: Health
+    description: Server health check
+  - name: Users
+    description: User registration, authentication, and profile management
+  - name: Posts
+    description: Post creation, retrieval, and management
+  - name: Comments
+    description: Comment operations on posts
+  - name: Categories
+    description: Category management
+  - name: Post Reactions
+    description: Like/dislike reactions on posts
+  - name: Comment Reactions
+    description: Like/dislike reactions on comments
+  - name: Admin
+    description: Administrative operations (requires admin role)
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from login endpoint
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        details:
+          type: string
+          description: Additional error details (development only)
+      required:
+        - error
+
+    Message:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    User:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: "johndoe"
+        display_name:
+          type: string
+          example: "John Doe"
+        bio:
+          type: string
+          nullable: true
+          example: "Software developer from Vilnius"
+        avatar_url:
+          type: string
+          nullable: true
+          example: "https://storage.example.com/avatars/1.jpg"
+        created_at:
+          type: string
+          format: date-time
+
+    UserListItem:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        username:
+          type: string
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    LoginResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Login successful."
+        token:
+          type: string
+          description: JWT access token (expires in 10 minutes)
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refresh_token:
+          type: string
+          description: JWT refresh token (expires in 7 days)
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        user_id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: "johndoe"
+        role:
+          type: string
+          enum: [user, admin]
+          example: "user"
+        avatar_url:
+          type: string
+          nullable: true
+
+    Post:
+      type: object
+      properties:
+        post_id:
+          type: integer
+          example: 42
+        content_text:
+          type: string
+          example: "This is my first post!"
+        author_name:
+          type: string
+          example: "John Doe"
+        author_avatar_url:
+          type: string
+          nullable: true
+        media_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        pinned:
+          type: boolean
+          example: false
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        reaction_counts:
+          $ref: '#/components/schemas/ReactionCounts'
+        user_reaction_type:
+          type: string
+          nullable: true
+          enum: [like, dislike, null]
+
+    Comment:
+      type: object
+      properties:
+        comment_id:
+          type: integer
+          example: 15
+        post_id:
+          type: integer
+          example: 42
+        content_text:
+          type: string
+          example: "Great post!"
+        author_name:
+          type: string
+          example: "Jane Smith"
+        author_avatar_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        parent_comment_id:
+          type: integer
+          nullable: true
+          description: ID of parent comment for replies
+
+    Category:
+      type: object
+      properties:
+        category_id:
+          type: integer
+          example: 1
+        category_name:
+          type: string
+          example: "Technology"
+        description:
+          type: string
+          nullable: true
+          example: "Posts about tech and programming"
+
+    ReactionCounts:
+      type: object
+      properties:
+        like_count:
+          type: integer
+          example: 10
+        dislike_count:
+          type: integer
+          example: 2
+
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        database:
+          type: string
+          enum: [connected, disconnected]
+        timestamp:
+          type: string
+          format: date-time
+
+paths:
+  # ==================== HEALTH ====================
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check server and database connectivity status
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+              example:
+                status: "healthy"
+                database: "connected"
+                timestamp: "2024-01-15T10:30:00.000Z"
+        '503':
+          description: Server is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+              example:
+                status: "unhealthy"
+                database: "disconnected"
+                error: "Connection refused"
+
+  # ==================== USERS ====================
+  /api/users/register:
+    post:
+      tags:
+        - Users
+      summary: Register a new user
+      description: Create a new user account
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 50
+                  example: "johndoe"
+                email:
+                  type: string
+                  format: email
+                  example: "john@example.com"
+                password:
+                  type: string
+                  minLength: 6
+                  example: "securePassword123"
+                display_name:
+                  type: string
+                  example: "John Doe"
+                bio:
+                  type: string
+                  example: "Hello, I'm John!"
+            example:
+              username: "johndoe"
+              email: "john@example.com"
+              password: "securePassword123"
+              display_name: "John Doe"
+              bio: "Software developer"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "User registered."
+        '400':
+          description: Validation error or duplicate user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                username_exists:
+                  value:
+                    error: "Username already exists."
+                email_exists:
+                  value:
+                    error: "Email already exists."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Registration failed."
+
+  /api/users/login:
+    post:
+      tags:
+        - Users
+      summary: User login
+      description: Authenticate user and receive JWT tokens
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - identifier
+                - password
+              properties:
+                identifier:
+                  type: string
+                  description: Username or email
+                  example: "johndoe"
+                password:
+                  type: string
+                  example: "securePassword123"
+            example:
+              identifier: "johndoe"
+              password: "securePassword123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                message: "Login successful."
+                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImpvaG5kb2UiLCJyb2xlIjoidXNlciIsImlhdCI6MTcwNTMxMjAwMCwiZXhwIjoxNzA1MzEyNjAwfQ.abc123"
+                refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImpvaG5kb2UiLCJyb2xlIjoidXNlciIsImlhdCI6MTcwNTMxMjAwMCwiZXhwIjoxNzA1OTE2ODAwfQ.xyz789"
+                user_id: 1
+                username: "johndoe"
+                role: "user"
+                avatar_url: null
+        '400':
+          description: Missing credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Identifier (email or username) and password are required."
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Invalid credentials."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Server failed to process login."
+
+  /api/users/refresh:
+    post:
+      tags:
+        - Users
+      summary: Refresh access token
+      description: Get a new access token using refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            example:
+              refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImpvaG5kb2UiLCJyb2xlIjoidXNlciIsImlhdCI6MTcwNTMxMjAwMCwiZXhwIjoxNzA1OTE2ODAwfQ.xyz789"
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  token:
+                    type: string
+              example:
+                message: "Token refreshed successfully."
+                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.newtoken..."
+        '400':
+          description: Missing refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Refresh token is required."
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid or expired refresh token."
+
+  /api/users/me:
+    get:
+      tags:
+        - Users
+      summary: Get current user profile
+      description: Retrieve the authenticated user's profile information
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                user_id: 1
+                username: "johndoe"
+                display_name: "John Doe"
+                bio: "Software developer from Vilnius"
+                avatar_url: "https://storage.example.com/avatars/1.jpg"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "User not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve profile."
+
+    put:
+      tags:
+        - Users
+      summary: Update current user profile
+      description: Update the authenticated user's display name and/or bio
+      operationId: updateCurrentUser
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                  example: "John D."
+                bio:
+                  type: string
+                  maxLength: 500
+                  example: "Updated bio text"
+            example:
+              display_name: "John D."
+              bio: "Senior software developer"
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                user_id: 1
+                username: "johndoe"
+                display_name: "John D."
+                bio: "Senior software developer"
+                avatar_url: "https://storage.example.com/avatars/1.jpg"
+        '400':
+          description: No fields to update
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "No fields to update."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to update profile."
+
+  /api/users/me/avatar:
+    post:
+      tags:
+        - Users
+      summary: Upload user avatar
+      description: Upload a new avatar image (max 5MB, formats - png, jpg, jpeg, webp)
+      operationId: uploadAvatar
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file (png, jpg, jpeg, webp, max 5MB)
+      responses:
+        '200':
+          description: Avatar uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                user_id: 1
+                username: "johndoe"
+                display_name: "John Doe"
+                bio: "Software developer"
+                avatar_url: "https://storage.example.com/avatars/1_1705312000.jpg"
+        '400':
+          description: Invalid file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_file:
+                  value:
+                    error: "No file uploaded."
+                invalid_type:
+                  value:
+                    error: "Unsupported file type."
+                too_large:
+                  value:
+                    error: "File too large. Max 5MB."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to upload avatar."
+
+    delete:
+      tags:
+        - Users
+      summary: Delete user avatar
+      description: Remove the current user's avatar
+      operationId: deleteAvatar
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Avatar removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Avatar removed."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to delete avatar."
+
+  /api/users/me/posts:
+    get:
+      tags:
+        - Users
+      summary: Get current user's posts
+      description: Retrieve all posts created by the authenticated user
+      operationId: getMyPosts
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Posts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+              example:
+                - post_id: 42
+                  content_text: "My first post!"
+                  author_name: "John Doe"
+                  author_avatar_url: "https://storage.example.com/avatars/1.jpg"
+                  media_url: null
+                  created_at: "2024-01-15T10:00:00.000Z"
+                  expires_at: "2024-01-15T11:00:00.000Z"
+                  pinned: false
+                  categories: []
+                  reaction_counts:
+                    like_count: 5
+                    dislike_count: 1
+                  user_reaction_type: "like"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve posts"
+
+  /api/users:
+    get:
+      tags:
+        - Users
+      summary: Get all users
+      description: Retrieve a list of all registered users
+      operationId: getAllUsers
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserListItem'
+              example:
+                - user_id: 1
+                  username: "johndoe"
+                  display_name: "John Doe"
+                  avatar_url: "https://storage.example.com/avatars/1.jpg"
+                  created_at: "2024-01-10T08:00:00.000Z"
+                - user_id: 2
+                  username: "janedoe"
+                  display_name: "Jane Doe"
+                  avatar_url: null
+                  created_at: "2024-01-12T14:30:00.000Z"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve users"
+
+  # ==================== POSTS ====================
+  /api/posts:
+    get:
+      tags:
+        - Posts
+      summary: Get all posts
+      description: Retrieve all non-expired posts, sorted by pinned status and creation date
+      operationId: getAllPosts
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Posts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+              example:
+                - post_id: 1
+                  content_text: "Important announcement!"
+                  author_name: "Admin"
+                  author_avatar_url: null
+                  media_url: null
+                  created_at: "2024-01-15T08:00:00.000Z"
+                  expires_at: "2024-01-16T08:00:00.000Z"
+                  pinned: true
+                  categories:
+                    - category_id: 1
+                      category_name: "Announcements"
+                  reaction_counts:
+                    like_count: 25
+                    dislike_count: 0
+                  user_reaction_type: null
+                - post_id: 42
+                  content_text: "Hello everyone!"
+                  author_name: "John Doe"
+                  author_avatar_url: "https://storage.example.com/avatars/1.jpg"
+                  media_url: null
+                  created_at: "2024-01-15T10:00:00.000Z"
+                  expires_at: "2024-01-15T11:00:00.000Z"
+                  pinned: false
+                  categories: []
+                  reaction_counts:
+                    like_count: 5
+                    dislike_count: 1
+                  user_reaction_type: "like"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve posts"
+
+    post:
+      tags:
+        - Posts
+      summary: Create a new post
+      description: Create a new ephemeral post with specified duration
+      operationId: createPost
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content_text
+                - expiration_duration
+              properties:
+                content_text:
+                  type: string
+                  description: Post content
+                  example: "This is my new post!"
+                expiration_duration:
+                  type: integer
+                  description: Duration in minutes (allowed - 1, 60, 1440)
+                  enum: [1, 60, 1440]
+                  example: 60
+                category_ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Array of category IDs
+                  example: [1, 3]
+                media_url:
+                  type: string
+                  nullable: true
+                  description: URL to attached media
+                  example: null
+            example:
+              content_text: "Check out this cool feature!"
+              expiration_duration: 60
+              category_ids: [1]
+              media_url: null
+      responses:
+        '201':
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Post created successfully."
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                empty_content:
+                  value:
+                    error: "Something needs to be written for the post to be made"
+                missing_duration:
+                  value:
+                    error: "Post duration is required."
+                invalid_duration:
+                  value:
+                    error: "Invalid post duration. Allowed values are: 1 minute, 1 hour, or 1 day."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to create post."
+
+  /api/posts/{postId}:
+    get:
+      tags:
+        - Posts
+      summary: Get post by ID
+      description: Retrieve a specific post by its ID
+      operationId: getPostById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Post ID
+          example: 42
+      responses:
+        '200':
+          description: Post retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+              example:
+                post_id: 42
+                content_text: "Hello everyone!"
+                author_name: "John Doe"
+                author_avatar_url: "https://storage.example.com/avatars/1.jpg"
+                author_id: 1
+                media_url: null
+                created_at: "2024-01-15T10:00:00.000Z"
+                expires_at: "2024-01-15T11:00:00.000Z"
+                pinned: false
+                categories:
+                  - category_id: 1
+                    category_name: "General"
+                reaction_counts:
+                  like_count: 5
+                  dislike_count: 1
+                user_reaction_type: "like"
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Post with ID 42 not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve post details."
+
+    put:
+      tags:
+        - Posts
+      summary: Update post
+      description: Update an existing post (author only)
+      operationId: updatePost
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Post ID
+          example: 42
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content_text
+              properties:
+                content_text:
+                  type: string
+                  example: "Updated post content"
+                media_url:
+                  type: string
+                  nullable: true
+            example:
+              content_text: "Updated post content!"
+              media_url: null
+      responses:
+        '200':
+          description: Post updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Post updated successfully."
+        '400':
+          description: Empty content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Content text cannot be empty during update."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: Post not found or not author
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Post not found or user is not the author."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to update post."
+
+    delete:
+      tags:
+        - Posts
+      summary: Delete post
+      description: Delete a post (author only)
+      operationId: deletePost
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Post ID
+          example: 42
+      responses:
+        '200':
+          description: Post deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Post and all associated data deleted successfully."
+        '400':
+          description: Missing post ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Post ID is required."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '403':
+          description: Forbidden - not the author
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Forbidden: Post not found or you are not the author."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to delete post."
+
+  # ==================== POST REACTIONS ====================
+  /api/posts/{postId}/reactions:
+    get:
+      tags:
+        - Post Reactions
+      summary: Get post reaction counts
+      description: Get like and dislike counts for a post
+      operationId: getPostReactionCounts
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+      responses:
+        '200':
+          description: Reaction counts retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReactionCounts'
+              example:
+                like_count: 10
+                dislike_count: 2
+        '400':
+          description: Invalid post ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid Post ID."
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Post not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve reaction counts."
+
+    post:
+      tags:
+        - Post Reactions
+      summary: Handle post reaction
+      description: |
+        Toggle reaction on a post. If user has no reaction, creates one. 
+        If same reaction exists, removes it. If different reaction exists, updates it.
+        Reactions affect post expiration (like adds 1 hour, dislike subtracts 1 hour).
+      operationId: handlePostReaction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reaction_type
+              properties:
+                reaction_type:
+                  type: string
+                  enum: [like, dislike]
+            example:
+              reaction_type: "like"
+      responses:
+        '200':
+          description: Reaction updated or deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  reaction_counts:
+                    $ref: '#/components/schemas/ReactionCounts'
+                  user_reaction_type:
+                    type: string
+                    nullable: true
+                  expires_at:
+                    type: string
+                    format: date-time
+              example:
+                message: "Reaction updated successfully."
+                reaction_counts:
+                  like_count: 11
+                  dislike_count: 2
+                user_reaction_type: "like"
+                expires_at: "2024-01-15T12:00:00.000Z"
+        '201':
+          description: Reaction created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  reaction_counts:
+                    $ref: '#/components/schemas/ReactionCounts'
+                  user_reaction_type:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+              example:
+                message: "Reaction created successfully."
+                reaction_counts:
+                  like_count: 11
+                  dislike_count: 2
+                user_reaction_type: "like"
+                expires_at: "2024-01-15T12:00:00.000Z"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Missing Post ID or User ID."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to handle post reaction."
+
+  /api/posts/{postId}/reactions/me:
+    get:
+      tags:
+        - Post Reactions
+      summary: Get user's reaction on post
+      description: Get the authenticated user's reaction on a specific post
+      operationId: getPostReaction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+      responses:
+        '200':
+          description: User reaction retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_reaction_type:
+                    type: string
+                    nullable: true
+                    enum: [like, dislike, null]
+              example:
+                user_reaction_type: "like"
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Missing required parameters (Post ID or User ID)."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Post not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve user reaction status."
+
+  /api/posts/{postId}/reactions/{reactionId}:
+    put:
+      tags:
+        - Post Reactions
+      summary: Update post reaction
+      description: Update an existing reaction on a post
+      operationId: updatePostReaction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+        - name: reactionId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reaction_type
+              properties:
+                reaction_type:
+                  type: string
+                  enum: [like, dislike]
+            example:
+              reaction_type: "dislike"
+      responses:
+        '200':
+          description: Reaction updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  reaction_counts:
+                    $ref: '#/components/schemas/ReactionCounts'
+                  user_reaction_type:
+                    type: string
+              example:
+                message: "Reaction updated successfully."
+                reaction_counts:
+                  like_count: 9
+                  dislike_count: 3
+                user_reaction_type: "dislike"
+        '400':
+          description: Invalid reaction type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid reaction type. Must be 'like' or 'dislike'."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: Reaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Reaction not found for update. Use POST to create."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to update post reaction."
+
+    delete:
+      tags:
+        - Post Reactions
+      summary: Delete post reaction
+      description: Remove user's reaction from a post
+      operationId: deletePostReaction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+        - name: reactionId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Reaction deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  reaction_counts:
+                    $ref: '#/components/schemas/ReactionCounts'
+                  user_reaction_type:
+                    type: string
+                    nullable: true
+              example:
+                message: "Reaction deleted successfully."
+                reaction_counts:
+                  like_count: 9
+                  dislike_count: 2
+                user_reaction_type: null
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: Reaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Reaction not found for deletion."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to delete post reaction."
+
+  # ==================== COMMENTS ====================
+  /api/posts/{postId}/comments:
+    get:
+      tags:
+        - Comments
+      summary: Get comments for a post
+      description: Retrieve all comments for a specific post
+      operationId: getCommentsByPost
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+      responses:
+        '200':
+          description: Comments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+              example:
+                - comment_id: 1
+                  post_id: 42
+                  content_text: "Great post!"
+                  author_name: "Jane Smith"
+                  author_avatar_url: null
+                  created_at: "2024-01-15T10:15:00.000Z"
+                  parent_comment_id: null
+                - comment_id: 2
+                  post_id: 42
+                  content_text: "I agree!"
+                  author_name: "Bob Wilson"
+                  author_avatar_url: "https://storage.example.com/avatars/3.jpg"
+                  created_at: "2024-01-15T10:20:00.000Z"
+                  parent_comment_id: 1
+        '400':
+          description: Invalid post ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid Post ID."
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Post not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve comments for post"
+
+    post:
+      tags:
+        - Comments
+      summary: Create a comment
+      description: Add a new comment to a post (supports replies via parent_comment_id)
+      operationId: createComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content_text
+              properties:
+                content_text:
+                  type: string
+                  example: "This is a great post!"
+                parent_comment_id:
+                  type: integer
+                  nullable: true
+                  description: ID of parent comment for replies
+                  example: null
+            example:
+              content_text: "This is a great post!"
+              parent_comment_id: null
+      responses:
+        '201':
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  comment_id:
+                    type: integer
+                  created_at:
+                    type: string
+                    format: date-time
+              example:
+                message: "Comment created successfully."
+                comment_id: 15
+                created_at: "2024-01-15T10:30:00.000Z"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                empty_content:
+                  value:
+                    error: "Something needs to be written for the comment to be made"
+                invalid_post_id:
+                  value:
+                    error: "Invalid postId parameter."
+                invalid_parent:
+                  value:
+                    error: "Parent comment not found."
+                parent_wrong_post:
+                  value:
+                    error: "Parent comment does not belong to the specified post."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Post not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to create comment."
+
+  /api/posts/{postId}/comments/{commentId}:
+    get:
+      tags:
+        - Comments
+      summary: Get single comment
+      description: Retrieve a specific comment by ID
+      operationId: getComment
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 15
+      responses:
+        '200':
+          description: Comment retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+              example:
+                comment_id: 15
+                post_id: 42
+                content_text: "Great post!"
+                author_name: "Jane Smith"
+                author_avatar_url: null
+                created_at: "2024-01-15T10:15:00.000Z"
+                parent_comment_id: null
+        '404':
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Comment not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve comment"
+
+    put:
+      tags:
+        - Comments
+      summary: Update comment
+      description: Update an existing comment (author only)
+      operationId: updateComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 15
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content_text
+              properties:
+                content_text:
+                  type: string
+                  example: "Updated comment text"
+            example:
+              content_text: "Updated comment text"
+      responses:
+        '200':
+          description: Comment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Comment updated successfully."
+        '400':
+          description: Empty content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Comment text cannot be empty during update."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: Comment not found or not author
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Comment not found, user is not the author, or comment does not belong to this post."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to update comment."
+
+    delete:
+      tags:
+        - Comments
+      summary: Delete comment
+      description: Delete a comment (author only)
+      operationId: deleteComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 15
+      responses:
+        '200':
+          description: Comment deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Comment deleted successfully."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: Comment not found or not author
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Comment not found, user is not the author, or comment does not belong to this post."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to delete comment."
+
+  # ==================== COMMENT REACTIONS ====================
+  /api/posts/{postId}/comments/{commentId}/reactions:
+    get:
+      tags:
+        - Comment Reactions
+      summary: Get comment reaction counts
+      description: Get like and dislike counts for a comment
+      operationId: getCommentReactionCounts
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 15
+      responses:
+        '200':
+          description: Reaction counts retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReactionCounts'
+              example:
+                like_count: 5
+                dislike_count: 0
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid Post ID or Comment ID format."
+        '404':
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Comment not found for this post."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve comment reaction counts."
+
+    post:
+      tags:
+        - Comment Reactions
+      summary: Handle comment reaction
+      description: Toggle reaction on a comment (create, update, or delete based on current state)
+      operationId: handleCommentReaction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 15
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reaction_type
+              properties:
+                reaction_type:
+                  type: string
+                  enum: [like, dislike]
+            example:
+              reaction_type: "like"
+      responses:
+        '200':
+          description: Reaction updated or deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Reaction updated successfully."
+        '201':
+          description: Reaction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Reaction created successfully."
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Missing required parameters."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Comment not found for the given post."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to handle comment reaction."
+
+  /api/posts/{postId}/comments/{commentId}/reactions/me:
+    get:
+      tags:
+        - Comment Reactions
+      summary: Get user's reaction on comment
+      description: Get the authenticated user's reaction on a specific comment
+      operationId: getCommentReaction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 15
+      responses:
+        '200':
+          description: User reaction retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_reaction_type:
+                    type: string
+                    nullable: true
+                    enum: [like, dislike, null]
+              example:
+                user_reaction_type: "like"
+        '400':
+          description: Missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Missing required Post ID or Comment ID parameter."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve reaction details."
+
+  /api/posts/{postId}/comments/{commentId}/reactions/{reactionId}:
+    put:
+      tags:
+        - Comment Reactions
+      summary: Update comment reaction
+      description: Update an existing reaction on a comment
+      operationId: updateCommentReaction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 15
+        - name: reactionId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reaction_type
+              properties:
+                reaction_type:
+                  type: string
+                  enum: [like, dislike]
+            example:
+              reaction_type: "dislike"
+      responses:
+        '200':
+          description: Reaction updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Reaction updated successfully."
+        '400':
+          description: Invalid reaction type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid reaction type. Must be 'like' or 'dislike'."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: Reaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Reaction not found for update. Use POST to create."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to update comment reaction."
+
+    delete:
+      tags:
+        - Comment Reactions
+      summary: Delete comment reaction
+      description: Remove user's reaction from a comment
+      operationId: deleteCommentReaction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 15
+        - name: reactionId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Reaction deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Reaction deleted successfully."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: Reaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Reaction not found for deletion."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to delete comment reaction."
+
+  # ==================== CATEGORIES ====================
+  /api/categories:
+    get:
+      tags:
+        - Categories
+      summary: Get all categories
+      description: Retrieve a list of all categories
+      operationId: getAllCategories
+      responses:
+        '200':
+          description: Categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+              example:
+                - category_id: 1
+                  category_name: "Technology"
+                  description: "Posts about tech and programming"
+                - category_id: 2
+                  category_name: "Sports"
+                  description: "Sports news and discussions"
+                - category_id: 3
+                  category_name: "Music"
+                  description: null
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve categories"
+
+    post:
+      tags:
+        - Categories
+      summary: Create a new category
+      description: Create a new category (requires authentication)
+      operationId: createCategory
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - category_name
+              properties:
+                category_name:
+                  type: string
+                  example: "Gaming"
+                description:
+                  type: string
+                  nullable: true
+                  example: "Video games and esports"
+            example:
+              category_name: "Gaming"
+              description: "Video games and esports"
+      responses:
+        '201':
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  category:
+                    $ref: '#/components/schemas/Category'
+              example:
+                message: "Category created successfully."
+                category:
+                  category_id: 5
+                  category_name: "Gaming"
+                  description: "Video games and esports"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                empty_name:
+                  value:
+                    error: "Category name is required."
+                duplicate:
+                  value:
+                    error: "Category with this name already exists."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to create category."
+
+  /api/categories/{categoryId}:
+    get:
+      tags:
+        - Categories
+      summary: Get category by ID
+      description: Retrieve a specific category
+      operationId: getCategoryById
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Category retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+              example:
+                category_id: 1
+                category_name: "Technology"
+                description: "Posts about tech and programming"
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Category not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve category."
+
+    put:
+      tags:
+        - Categories
+      summary: Update category
+      description: Update an existing category
+      operationId: updateCategory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - category_name
+              properties:
+                category_name:
+                  type: string
+                  example: "Tech & Programming"
+                description:
+                  type: string
+                  nullable: true
+                  example: "All things technology"
+            example:
+              category_name: "Tech & Programming"
+              description: "All things technology"
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Category updated successfully."
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                empty_name:
+                  value:
+                    error: "Category name cannot be empty."
+                duplicate_name:
+                  value:
+                    error: "Category with this name already exists."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Category not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to update category."
+
+    delete:
+      tags:
+        - Categories
+      summary: Delete category
+      description: Delete a category (posts will be unassigned from it)
+      operationId: deleteCategory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Category deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Category deleted successfully, and associated posts were unassigned."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Category not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to delete category."
+
+  /api/categories/{categoryId}/posts:
+    get:
+      tags:
+        - Categories
+      summary: Get posts by category
+      description: Retrieve all posts in a specific category
+      operationId: getPostsByCategory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Posts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+              example:
+                - post_id: 10
+                  content_text: "New JavaScript framework released!"
+                  author_name: "Tech Enthusiast"
+                  author_avatar_url: null
+                  media_url: null
+                  created_at: "2024-01-15T09:00:00.000Z"
+                  expires_at: "2024-01-15T10:00:00.000Z"
+                  pinned: false
+                  categories:
+                    - category_id: 1
+                      category_name: "Technology"
+                  reaction_counts:
+                    like_count: 15
+                    dislike_count: 2
+                  user_reaction_type: null
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to retrieve posts."
+
+  # ==================== ADMIN ====================
+  /api/admin/posts/{postId}:
+    delete:
+      tags:
+        - Admin
+      summary: Delete any post (Admin)
+      description: Admin can delete any post regardless of ownership
+      operationId: adminDeletePost
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+      responses:
+        '200':
+          description: Post deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Post and all associated data deleted successfully."
+        '400':
+          description: Missing post ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Post ID is required."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '403':
+          description: Forbidden - not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. Admin privileges required."
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Post not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to delete post."
+
+  /api/admin/posts/{postId}/revive:
+    patch:
+      tags:
+        - Admin
+      summary: Revive expired post (Admin)
+      description: Extend a post's expiration time
+      operationId: adminRevivePost
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - duration_minutes
+              properties:
+                duration_minutes:
+                  type: integer
+                  enum: [1, 60, 1440]
+                  description: Duration in minutes to extend (1 min, 1 hour, or 1 day)
+            example:
+              duration_minutes: 60
+      responses:
+        '200':
+          description: Post revived successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+              example:
+                message: "Post revived successfully."
+                expires_at: "2024-01-15T12:00:00.000Z"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_id:
+                  value:
+                    error: "Post ID is required."
+                invalid_duration:
+                  value:
+                    error: "Invalid duration. Allowed values are: 1, 60, or 1440 minutes."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '403':
+          description: Forbidden - not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. Admin privileges required."
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Post not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to revive post."
+
+  /api/admin/posts/{postId}/pin:
+    patch:
+      tags:
+        - Admin
+      summary: Toggle pin status (Admin)
+      description: Pin or unpin a post
+      operationId: adminTogglePin
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+      responses:
+        '200':
+          description: Pin status toggled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  pinned:
+                    type: boolean
+              examples:
+                pinned:
+                  value:
+                    message: "Post pinned successfully."
+                    pinned: true
+                unpinned:
+                  value:
+                    message: "Post unpinned successfully."
+                    pinned: false
+        '400':
+          description: Missing post ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Post ID is required."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '403':
+          description: Forbidden - not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. Admin privileges required."
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Post not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to toggle pin."
+
+  /api/admin/posts/{postId}/comments/{commentId}:
+    delete:
+      tags:
+        - Admin
+      summary: Delete any comment (Admin)
+      description: Admin can delete any comment regardless of ownership
+      operationId: adminDeleteComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 15
+      responses:
+        '200':
+          description: Comment deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: "Comment deleted successfully."
+        '400':
+          description: Missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Post ID and Comment ID are required."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. No token provided."
+        '403':
+          description: Forbidden - not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Access denied. Admin privileges required."
+        '404':
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Comment not found."
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Failed to delete comment."
+
