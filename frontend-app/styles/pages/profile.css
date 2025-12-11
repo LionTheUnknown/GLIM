@@ -193,6 +193,12 @@
   font-style: italic;
 }
 
+.profile-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
 .profile-bio-edit {
   display: flex;
   flex-direction: column;
