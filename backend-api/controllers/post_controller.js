@@ -1,5 +1,5 @@
 const { pool, getClient } = require('../db');
-const { enrichPostsWithMetadata, fetchPostReactionMetadata, formatPost, fetchBatchCategories } = require('../utils/postHelpers');
+const { enrichPostsWithMetadata, getPostReactionMetadata, formatPost, getBatchCategories } = require('../utils/postHelpers');
 
 // GET ALL POSTS
 exports.getAllPosts = async (req, res) => {
@@ -187,10 +187,10 @@ exports.getPostById = async (req, res) => {
             return res.status(404).json({ error: `Post with ID ${postId} not found.` });
         }
 
-        const categoriesMap = await fetchBatchCategories([parseInt(postId)]);
+        const categoriesMap = await getBatchCategories([parseInt(postId)]);
         post.categories = categoriesMap.get(parseInt(postId)) || [];
 
-        const metadata = await fetchPostReactionMetadata(postId, userId);
+        const metadata = await getPostReactionMetadata(postId, userId);
         res.status(200).json(formatPost(post, metadata.counts, metadata.userReaction));
 
     } catch (err) {
