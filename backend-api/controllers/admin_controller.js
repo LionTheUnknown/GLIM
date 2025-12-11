@@ -111,6 +111,42 @@ exports.togglePinPost = async (req, res) => {
     }
 };
 
+// DELETE ANY COMMENT (admin only)
+exports.deleteAnyComment = async (req, res) => {
+    const { postId, commentId } = req.params;
+
+    if (!postId || !commentId) {
+        return res.status(400).json({ error: "Post ID and Comment ID are required." });
+    }
+
+    try {
+        await pool.query(`
+            DELETE FROM reactions
+            WHERE comment_id = $1
+        `, [commentId]);
+
+        await pool.query(`
+            DELETE FROM comments
+            WHERE parent_comment_id = $1 AND post_id = $2
+        `, [commentId, postId]);
+
+        const result = await pool.query(`
+            DELETE FROM comments
+            WHERE comment_id = $1 AND post_id = $2
+        `, [commentId, postId]);
+        
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Comment not found.' });
+        }
+
+        res.status(200).json({ message: 'Comment deleted successfully.' });
+
+    } catch (err) {
+        console.error('Error deleting comment:', err.message);
+        res.status(500).json({ error: 'Failed to delete comment.', details: err.message });
+    }
+};
+
 // GET PENDING CATEGORIES
 exports.getPendingCategories = async (req, res) => {
     try {

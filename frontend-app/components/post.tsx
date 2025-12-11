@@ -20,7 +20,7 @@ export default function Post({ post, onPostDeleted, onPostUpdated, highlighted =
   const router = useRouter()
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this post? (Dev Mode)')) {
+    if (!confirm('Are you sure you want to delete this post?')) {
       return
     }
 

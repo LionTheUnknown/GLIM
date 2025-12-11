@@ -162,7 +162,7 @@ export default function DevTools({ postId, onDelete, onRevive, onPin, isPinned }
                     className="dev-tools-btn dev-tools-btn-danger"
                     onClick={handleDeleteClick}
                     disabled={loadingDelete}
-                    title="Delete post (admin)"
+                    title="Delete post"
                 >
                     <i className={loadingDelete ? "pi pi-spin pi-spinner" : "pi pi-trash"} />
                 </button>
@@ -170,7 +170,7 @@ export default function DevTools({ postId, onDelete, onRevive, onPin, isPinned }
                     className="dev-tools-btn dev-tools-btn-warning"
                     onClick={handleReviveClick}
                     disabled={loadingRevive}
-                    title="Revive post (admin)"
+                    title="Revive post"
                 >
                     <i className={loadingRevive ? "pi pi-spin pi-spinner" : "pi pi-refresh"} />
                 </button>
@@ -178,7 +178,7 @@ export default function DevTools({ postId, onDelete, onRevive, onPin, isPinned }
                     className="dev-tools-btn dev-tools-btn-pin"
                     onClick={handlePinClick}
                     disabled={loadingPin}
-                    title={isPinned ? "Unpin post (admin)" : "Pin post (admin)"}
+                    title={isPinned ? "Unpin post" : "Pin post"}
                     data-pinned={isPinned}
                 >
                     <i className={loadingPin ? "pi pi-spin pi-spinner" : isPinned ? "pi pi-bookmark-fill" : "pi pi-bookmark"} />
