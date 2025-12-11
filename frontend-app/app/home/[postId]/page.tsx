@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback, ReactElement, use } from 'react'
 import axios from 'axios'
 import api from '@/utils/api'
 import { useRouter } from 'next/navigation'
-import { Post, Comment } from '@/app/actions'
-import HighlightedPost from '@/components/highlighted-post'
+import { Post as PostType, Comment } from '@/app/actions'
+import Post from '@/components/post'
 import PostCommentsSection from '@/components/commentSection'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
-interface PostWithReactions extends Post {
+interface PostWithReactions extends PostType {
     reaction_counts: {
         like_count: number;
         dislike_count: number;
@@ -156,10 +156,11 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
     return (
         <div className="page-container">
             <div className="card post-detail-card">
-                <HighlightedPost 
+                <Post 
                     post={postData} 
                     onPostDeleted={handlePostDeleted}
                     onPostUpdated={handlePostUpdated}
+                    highlighted
                 />
                 <PostCommentsSection
                     postId={postData.post_id}

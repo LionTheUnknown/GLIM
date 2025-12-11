@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Post } from '@/app/actions'
+import { useState, useEffect, ReactElement } from 'react'
+import { Post as PostType } from '@/app/actions'
 import FlameTimer from './flameTimer'
 import { Card } from 'primereact/card'
 import DevTools from './DevTools'
@@ -11,12 +11,13 @@ import { toast } from '@/utils/toast'
 import { useRouter } from 'next/navigation'
 
 interface PostProps {
-  post: Post
+  post: PostType
   onPostDeleted?: () => void
   onPostUpdated?: () => void
+  highlighted?: boolean
 }
 
-export default function Message({ post, onPostDeleted, onPostUpdated }: PostProps) {
+export default function Post({ post, onPostDeleted, onPostUpdated, highlighted = false }: PostProps): ReactElement {
   const router = useRouter()
   const [devMode, setDevMode] = useState(false)
 
@@ -61,6 +62,8 @@ export default function Message({ post, onPostDeleted, onPostUpdated }: PostProp
       toast.success(`Post revived for ${duration === 1 ? '1 minute' : duration === 60 ? '1 hour' : '1 day'}`)
       if (onPostUpdated) {
         onPostUpdated()
+      } else if (highlighted) {
+        router.refresh()
       }
     } catch (err) {
       toast.error('Failed to revive post')
@@ -74,6 +77,8 @@ export default function Message({ post, onPostDeleted, onPostUpdated }: PostProp
       toast.success(post.pinned ? 'Post unpinned' : 'Post pinned')
       if (onPostUpdated) {
         onPostUpdated()
+      } else if (highlighted) {
+        router.refresh()
       }
     } catch (err) {
       toast.error('Failed to toggle pin')
@@ -87,7 +92,10 @@ export default function Message({ post, onPostDeleted, onPostUpdated }: PostProp
     : legacyCategory
 
   return (
-    <Card className={`post-card ${post.pinned ? 'post-pinned' : ''}`}>
+    <Card 
+      className={`post-card ${post.pinned ? 'post-pinned' : ''}`}
+      style={highlighted ? { marginBottom: '2rem' } : undefined}
+    >
       {post.pinned && (
         <div className="post-pinned-badge">📌 Pinned</div>
       )}
@@ -118,6 +126,7 @@ export default function Message({ post, onPostDeleted, onPostUpdated }: PostProp
             expiresAt={post.expires_at || null} 
             postId={post.post_id}
             userReaction={post.user_reaction_type || null}
+            onExpirationUpdate={onPostUpdated ? () => onPostUpdated() : undefined}
           />
         </div>
         {devMode && (
@@ -133,3 +142,6 @@ export default function Message({ post, onPostDeleted, onPostUpdated }: PostProp
     </Card>
   )
 }
+
+// Backward compatibility alias
+export { Post as Message }

@@ -129,6 +129,9 @@ export default function FlameTimer({ expiresAt, postId, onExpirationUpdate, user
     }, [isExpired, currentExpiresAt, timeRemaining, secondsRemaining, frames.length]);
 
     const handleFlameClick = async (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
         if (!postId || isSubmitting || !isAuthenticated()) {
             if (!isAuthenticated()) {
                 toast.error('Please log in to react');
@@ -254,8 +257,6 @@ export default function FlameTimer({ expiresAt, postId, onExpirationUpdate, user
                         className="flame-timer-ascii"
                         style={{ 
                             color: getFlameColor(),
-                            textShadow: `0 0 8px ${getFlameColor()}, 0 0 16px ${getFlameColor()}`,
-                            filter: `drop-shadow(0 0 6px ${getFlameColor()})`,
                             pointerEvents: 'none'
                         }}
                     >

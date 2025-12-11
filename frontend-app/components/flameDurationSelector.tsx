@@ -102,8 +102,6 @@ export default function FlameDurationSelector({ value, onChange, disabled }: Fla
                         className="flame-ascii"
                         style={{ 
                             color: getFlameColor(selectedIndex),
-                            textShadow: `0 0 10px ${getFlameColor(selectedIndex)}, 0 0 20px ${getFlameColor(selectedIndex)}`,
-                            filter: `drop-shadow(0 0 8px ${getFlameColor(selectedIndex)})`,
                         }}
                     >
                         {currentFlame.join('\n')}

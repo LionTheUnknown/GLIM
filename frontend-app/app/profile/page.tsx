@@ -6,7 +6,10 @@ import api from '@/utils/api';
 import { isAuthenticated } from '@/utils/auth';
 import { Card } from 'primereact/card';
 import { Button } from 'primereact/button';
+import { InputTextarea } from 'primereact/inputtextarea';
 import { toast } from '@/utils/toast';
+import { Posts } from '@/app/actions';
+import { PostList } from '@/components/post-list';
 
 interface UserProfile {
     user_id: number;
@@ -19,10 +22,15 @@ interface UserProfile {
 export default function ProfilePage() {
     const router = useRouter();
     const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [posts, setPosts] = useState<Posts>([]);
     const [loading, setLoading] = useState(true);
+    const [postsLoading, setPostsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
     const [removing, setRemoving] = useState(false);
+    const [editingBio, setEditingBio] = useState(false);
+    const [bioText, setBioText] = useState('');
+    const [savingBio, setSavingBio] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const fetchProfile = useCallback(async () => {
@@ -38,6 +46,18 @@ export default function ProfilePage() {
             toast.error(errorMsg);
         } finally {
             setLoading(false);
+        }
+    }, []);
+
+    const fetchMyPosts = useCallback(async () => {
+        try {
+            setPostsLoading(true);
+            const response = await api.get('/api/users/me/posts');
+            setPosts(response.data);
+        } catch (err) {
+            console.error('Error fetching posts:', err);
+        } finally {
+            setPostsLoading(false);
         }
     }, []);
 
@@ -92,6 +112,30 @@ export default function ProfilePage() {
         }
     };
 
+    const handleEditBio = () => {
+        setBioText(profile?.bio || '');
+        setEditingBio(true);
+    };
+
+    const handleCancelBio = () => {
+        setEditingBio(false);
+        setBioText('');
+    };
+
+    const handleSaveBio = async () => {
+        setSavingBio(true);
+        try {
+            const response = await api.put('/api/users/me', { bio: bioText });
+            setProfile(response.data);
+            setEditingBio(false);
+            toast.success('Bio updated');
+        } catch (_err) {
+            toast.error('Save failed', 'Could not update bio.');
+        } finally {
+            setSavingBio(false);
+        }
+    };
+
     useEffect(() => {
         if (!isAuthenticated()) {
             setLoading(false);
@@ -99,7 +143,8 @@ export default function ProfilePage() {
         }
 
         fetchProfile();
-    }, [fetchProfile, router]);
+        fetchMyPosts();
+    }, [fetchProfile, fetchMyPosts, router]);
 
     if (!isAuthenticated()) {
         return (
@@ -164,6 +209,18 @@ export default function ProfilePage() {
     return (
         <div className="page-container">
             <Card className="profile-card">
+                <button
+                    className="profile-logout-btn"
+                    onClick={() => {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('refresh_token');
+                        toast.info('Logged out successfully');
+                        router.push('/login');
+                    }}
+                    title="Logout"
+                >
+                    <i className="pi pi-sign-out"></i>
+                </button>
                 <div className="profile-header">
                     <div className="profile-avatar-container">
                         <input
@@ -210,39 +267,71 @@ export default function ProfilePage() {
                     </p>
                 </div>
 
-                {profile.bio && (
-                    <div className="profile-bio-section">
-                        <h2 className="profile-bio-label">
-                            Bio
-                        </h2>
-                        <p className="profile-bio-text">
-                            {profile.bio}
-                        </p>
+                <div className="profile-bio-section">
+                    <div className="profile-bio-header">
+                        <h2 className="profile-bio-label">Bio</h2>
+                        {!editingBio && (
+                            <button 
+                                className="profile-bio-edit-btn"
+                                onClick={handleEditBio}
+                                title="Edit bio"
+                            >
+                                <i className="pi pi-pencil"></i>
+                            </button>
+                        )}
                     </div>
-                )}
-
-                <div className="profile-actions">
-                    <Button
-                        label="Back to Feed"
-                        icon="pi pi-home"
-                        onClick={() => router.push('/home')}
-                        outlined
-                        className="profile-action-btn"
-                    />
-                    <Button
-                        label="Logout"
-                        icon="pi pi-sign-out"
-                        onClick={async () => {
-                            localStorage.removeItem('token');
-                            localStorage.removeItem('refresh_token');
-                            toast.info('Logged out successfully');
-                            router.push('/login');
-                        }}
-                        outlined
-                        className="profile-action-btn"
-                    />
+                    {editingBio ? (
+                        <div className="profile-bio-edit">
+                            <InputTextarea
+                                value={bioText}
+                                onChange={(e) => setBioText(e.target.value)}
+                                rows={4}
+                                placeholder="Write something about yourself..."
+                                className="profile-bio-textarea"
+                                maxLength={500}
+                                autoResize
+                            />
+                            <div className="profile-bio-actions">
+                                <Button
+                                    label="Cancel"
+                                    icon="pi pi-times"
+                                    onClick={handleCancelBio}
+                                    outlined
+                                    size="small"
+                                    disabled={savingBio}
+                                />
+                                <Button
+                                    label="Save"
+                                    icon="pi pi-check"
+                                    onClick={handleSaveBio}
+                                    size="small"
+                                    loading={savingBio}
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="profile-bio-text">
+                            {profile.bio || <span className="profile-bio-empty">No bio yet. Click the pencil to add one!</span>}
+                        </p>
+                    )}
                 </div>
+
             </Card>
+
+            <div className="profile-posts-section">
+                <div className="profile-posts-separator"></div>
+                {postsLoading ? (
+                    <p className="loading-text">Loading posts...</p>
+                ) : posts.length === 0 ? (
+                    <p className="profile-no-posts">You haven't created any posts yet.</p>
+                ) : (
+                    <PostList 
+                        posts={posts} 
+                        onPostDeleted={fetchMyPosts}
+                        onPostUpdated={fetchMyPosts}
+                    />
+                )}
+            </div>
         </div>
     );
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { ReactElement, useState, useEffect } from 'react'
-import Message from './post' 
+import Post from './post' 
 import Link from 'next/link'
 import { Posts } from '@/app/actions'
 import { useRouter } from 'next/navigation'
@@ -85,7 +85,7 @@ export function PostList({ posts, onPostDeleted, onPostUpdated }: { posts : Post
                             href={`/home/${postItem.post_id}`}
                             style={{ textDecoration: 'none', display: 'block' }}
                         >
-                            <Message 
+                            <Post 
                                 post={postItem}
                                 onPostDeleted={onPostDeleted || (() => router.refresh())}
                                 onPostUpdated={onPostUpdated || (() => router.refresh())}
