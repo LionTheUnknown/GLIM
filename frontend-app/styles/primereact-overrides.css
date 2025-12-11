@@ -398,3 +398,24 @@
 .post-form-card.p-card .p-card-header {
   padding: 0.75rem 1rem !important;
 }
+
+.p-checkbox .p-checkbox-box {
+  background: rgba(26, 26, 26, 0.5) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-checkbox .p-checkbox-box:hover {
+  border-color: rgba(58, 58, 58, 0.8) !important;
+}
+
+.p-checkbox .p-checkbox-box.p-highlight,
+.p-checkbox.p-highlight .p-checkbox-box {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+.p-checkbox .p-checkbox-box.p-highlight:hover,
+.p-checkbox.p-highlight .p-checkbox-box:hover {
+  background: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
+}

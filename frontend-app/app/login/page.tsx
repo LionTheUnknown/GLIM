@@ -70,7 +70,11 @@ const LoginPage = () => {
             let errorMessage = 'Login failed due to an unknown error.';
 
             if (axios.isAxiosError(err) && err.response) {
-                errorMessage = err.response.data.details || err.response.data.error || 'Check server logs.';
+                if (err.response.status === 401) {
+                    errorMessage = 'Invalid username/email or password.';
+                } else {
+                    errorMessage = err.response.data.message || err.response.data.error || err.response.data.details || 'Check server logs.';
+                }
             } else if (err instanceof Error) {
                 errorMessage = err.message;
             }
