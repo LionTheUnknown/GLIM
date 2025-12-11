@@ -36,10 +36,6 @@
   font-size: 0.9rem !important;
 }
 
-.hamburger-button .p-button-icon {
-  color: var(--text-primary) !important;
-}
-
 .mobile-menu-overlay {
   position: fixed;
   top: 0;
@@ -155,15 +151,12 @@
   }
 }
 
-/* Hamburger button always visible */
 .hamburger-button {
   display: block !important;
 }
 
-/* Desktop menu styling - menu slides from left on desktop too */
 @media (min-width: 769px) {
   .mobile-menu {
     width: 320px;
   }
 }
-

@@ -125,5 +125,4 @@ export default function Post({ post, onPostDeleted, onPostUpdated, highlighted =
   )
 }
 
-// Backward compatibility alias
 export { Post as Message }

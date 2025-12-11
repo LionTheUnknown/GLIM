@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback, ReactElement, use } from 'react'
+import { useState, useEffect, useCallback, ReactElement, use, useRef } from 'react'
 import axios from 'axios'
 import api from '@/utils/api'
 import { useRouter } from 'next/navigation'
 import { Post as PostType, Comment } from '@/app/actions'
 import Post from '@/components/post'
 import PostCommentsSection from '@/components/commentSection'
+import { toast } from '@/utils/toast'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -28,6 +29,7 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
     const [loadingComments, setLoadingComments] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null)
+    const hasRedirected = useRef(false)
 
     const fetchComments = useCallback(async () => {
         setLoadingComments(true);
@@ -35,12 +37,12 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
             const response = await api.get(`${API_BASE_URL}/api/posts/${postId}/comments`);
             const commentsData = response.data;
             
-            // Fetch reaction data for each comment
+            // get reaction data for each comment
             const token = localStorage.getItem('token');
             const commentsWithReactions = await Promise.all(
                 commentsData.map(async (comment: Comment) => {
                     try {
-                        // Fetch reaction counts
+                        // get reaction counts
                         const countsResponse = await api.get(
                             `${API_BASE_URL}/api/posts/${postId}/comments/${comment.comment_id}/reactions`
                         );
@@ -48,14 +50,14 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
                         let userReaction: 'like' | 'dislike' | null = null;
                         if (token) {
                             try {
-                                // Fetch user's reaction if authenticated
+                                // get user reaction if authenticated
                                 const userReactionResponse = await axios.get(
                                     `${API_BASE_URL}/api/posts/${postId}/comments/${comment.comment_id}/reactions/me`,
                                     { headers: { Authorization: `Bearer ${token}` } }
                                 );
                                 userReaction = userReactionResponse.data?.user_reaction_type || null;
                             } catch (_err) {
-                                // 404 means no reaction, which is fine
+                                // 404 means no reaction
                                 userReaction = null;
                             }
                         }
@@ -66,7 +68,7 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
                             user_reaction_type: userReaction
                         };
                     } catch (_err) {
-                        // If reaction fetch fails, return comment without reactions
+                        // if reaction get fails, return comment without reactions
                         return {
                             ...comment,
                             reaction_counts: { like_count: 0, dislike_count: 0 },
@@ -97,7 +99,12 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
         } catch (err: unknown) {
             console.error('Post load failed:', err);
             if (axios.isAxiosError(err) && err.response?.status === 404) {
-                setError('Post not found (404).');
+                if (!hasRedirected.current) {
+                    hasRedirected.current = true;
+                    toast.error('Post not found', 'This post does not exist or has been deleted');
+                    router.push('/home');
+                }
+                return;
             } else {
                 setError('Failed to load post details.');
             }
@@ -105,13 +112,15 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
         } finally {
             setLoadingPost(false);
         }
-    }, [postId]);
+    }, [postId, router]);
 
     useEffect(() => {
         const authToken = localStorage.getItem('token');
         setToken(authToken);
 
-        if (!authToken) {
+        if (!authToken && !hasRedirected.current) {
+            hasRedirected.current = true;
+            toast.info('Please log in to view posts and comments');
             router.push('/login');
             return;
         }

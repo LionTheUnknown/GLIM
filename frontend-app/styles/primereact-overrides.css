@@ -50,11 +50,17 @@
   min-width: 0 !important;
 }
 
+.p-password .p-icon-field {
+  width: 100% !important;
+  display: flex !important;
+}
+
 .p-password input,
 .p-password .p-password-input {
   background: rgba(26, 26, 26, 0.5) !important;
   border-color: rgba(42, 42, 42, 0.8) !important;
   color: var(--text-primary) !important;
+  width: 100% !important;
   flex: 1 1 auto !important;
   min-width: 0 !important;
   box-sizing: border-box !important;

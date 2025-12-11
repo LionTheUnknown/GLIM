@@ -1,4 +1,5 @@
 const { pool, getClient } = require('../db');
+const { enrichPostsWithMetadata, fetchPostReactionMetadata, formatPost, fetchBatchCategories } = require('../utils/postHelpers');
 
 // GET ALL POSTS
 exports.getAllPosts = async (req, res) => {
@@ -6,7 +7,7 @@ exports.getAllPosts = async (req, res) => {
     
     try {
         const result = await pool.query(`
-            SELECT DISTINCT posts.post_id, posts.content_text, posts.category_id, 
+            SELECT DISTINCT posts.post_id, posts.content_text,
                 users.display_name AS author_name, users.avatar_url AS author_avatar_url,
                 posts.created_at, posts.expires_at, posts.media_url, posts.pinned
             FROM posts
@@ -19,79 +20,7 @@ exports.getAllPosts = async (req, res) => {
             return res.status(200).json([]);
         }
 
-        const postIds = result.rows.map(row => row.post_id);
-
-        const countsResult = await pool.query(`
-            SELECT 
-                post_id,
-                COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS like_count,
-                COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) AS dislike_count
-            FROM reactions
-            WHERE post_id = ANY($1::int[]) AND comment_id IS NULL
-            GROUP BY post_id
-        `, [postIds]);
-
-        const countsMap = {};
-        countsResult.rows.forEach(row => {
-            countsMap[row.post_id] = {
-                like_count: parseInt(row.like_count) || 0,
-                dislike_count: parseInt(row.dislike_count) || 0
-            };
-        });
-
-        let userReactionsMap = {};
-        if (userId) {
-            const userReactionsResult = await pool.query(`
-                SELECT post_id, reaction_type
-                FROM reactions
-                WHERE user_id = $1 AND post_id = ANY($2::int[]) AND comment_id IS NULL
-            `, [userId, postIds]);
-
-            userReactionsResult.rows.forEach(row => {
-                userReactionsMap[row.post_id] = row.reaction_type;
-            });
-        }
-
-        const categoriesMap = new Map();
-
-        if (postIds.length > 0) {
-            const categoriesResult = await pool.query(`
-                SELECT pc.post_id, c.category_id, c.category_name
-                FROM post_categories pc
-                JOIN categories c ON pc.category_id = c.category_id
-                WHERE pc.post_id = ANY($1::int[])
-                ORDER BY pc.post_id, c.category_name
-            `, [postIds]);
-
-            categoriesResult.rows.forEach(row => {
-                if (!categoriesMap.has(row.post_id)) {
-                    categoriesMap.set(row.post_id, []);
-                }
-                categoriesMap.get(row.post_id).push({
-                    category_id: row.category_id,
-                    category_name: row.category_name
-                });
-            });
-        }
-
-        const formattedPosts = result.rows.map(record => {
-            const postId = record.post_id;
-            const categories = categoriesMap.get(postId) || [];
-            return {
-                post_id: postId,
-                author_name: record.author_name,
-                author_avatar_url: record.author_avatar_url || null,
-                content_text: record.content_text,
-                categories: categories,
-                created_at: record.created_at,
-                expires_at: record.expires_at,
-                media_url: record.media_url,
-                pinned: record.pinned || false,
-                reaction_counts: countsMap[postId] || { like_count: 0, dislike_count: 0 },
-                user_reaction_type: userReactionsMap[postId] || null,
-            };
-        });
-        
+        const formattedPosts = await enrichPostsWithMetadata(result.rows, userId);
         res.status(200).json(formattedPosts);
         
     } catch (err) {
@@ -103,7 +32,7 @@ exports.getAllPosts = async (req, res) => {
 // CREATE POST
 exports.createPost = async (req, res) => {
     const authorId = req.user.user_id;
-    const { content_text, category_ids, category_id, media_url, expiration_duration } = req.body;
+    const { content_text, category_ids, media_url, expiration_duration } = req.body;
 
     if (!content_text || content_text.trim().length === 0) {
         return res.status(400).json({ error: 'Something needs to be written for the post to be made' });
@@ -131,28 +60,25 @@ exports.createPost = async (req, res) => {
         
         const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
         
-        const categoryIdsArray = category_ids || (category_id ? [category_id] : []);
-        const validCategoryIds = Array.isArray(categoryIdsArray) 
-            ? categoryIdsArray.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0)
+        const validCategoryIds = Array.isArray(category_ids) 
+            ? category_ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0)
             : [];
 
-        const firstCategoryId = validCategoryIds.length > 0 ? validCategoryIds[0] : null;
-
         const result = await client.query(`
-            INSERT INTO posts (author_id, category_id, content_text, media_url, expires_at) 
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO posts (author_id, content_text, media_url, expires_at) 
+            VALUES ($1, $2, $3, $4)
             RETURNING post_id
-        `, [authorId, firstCategoryId, content_text, media_url || null, expiresAt]);
+        `, [authorId, content_text, media_url || null, expiresAt]);
 
         const postId = result.rows[0].post_id;
 
         if (validCategoryIds.length > 0) {
-            for (const categoryId of validCategoryIds) {
+            for (const catId of validCategoryIds) {
                 await client.query(`
                     INSERT INTO post_categories (post_id, category_id)
                     VALUES ($1, $2)
                     ON CONFLICT (post_id, category_id) DO NOTHING
-                `, [postId, categoryId]);
+                `, [postId, catId]);
             }
         }
 
@@ -180,7 +106,7 @@ exports.createPost = async (req, res) => {
 exports.updatePost = async (req, res) => {
     const postId = req.params.postId;
     const userId = req.user?.user_id; 
-    const { content_text, category_id, media_url } = req.body;
+    const { content_text, media_url } = req.body;
 
     if (!content_text) {
         return res.status(400).json({ error: 'Content text cannot be empty during update.' });
@@ -191,11 +117,10 @@ exports.updatePost = async (req, res) => {
             UPDATE posts 
             SET 
                 content_text = $1, 
-                category_id = $2,
-                media_url = $3,
+                media_url = $2,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE post_id = $4 AND author_id = $5
-        `, [content_text, category_id || null, media_url || null, postId, userId]);
+            WHERE post_id = $3 AND author_id = $4
+        `, [content_text, media_url || null, postId, userId]);
 
         if (result.rowCount === 0) {
             return res.status(404).json({ error: 'Post not found or user is not the author.' });
@@ -241,74 +166,6 @@ exports.deletePost = async (req, res) => {
     }
 };
 
-const formatPost = (post, reactionCounts, userReactionType) => {
-    if (!post) return null;
-
-    const {
-        post_id,
-        content_text,
-        media_url,
-        author_id,
-        display_name: author_name,
-        author_avatar_url,
-        created_at,
-        category_name,
-        expires_at,
-        pinned,
-    } = post;
-
-    return {
-        post_id,
-        content_text,
-        media_url,
-        author_id,
-        author_name,
-        author_avatar_url: author_avatar_url || null,
-        created_at,
-        categories: post.categories || [],
-        expires_at,
-        pinned: pinned || false,
-        reaction_counts: reactionCounts,
-        user_reaction_type: userReactionType,
-    };
-};
-
-const fetchPostMetadata = async (postId, userId) => {
-    try {
-        const countsResult = await pool.query(`
-            SELECT 
-                COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS like_count,
-                COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) AS dislike_count
-            FROM reactions
-            WHERE post_id = $1 AND comment_id IS NULL
-        `, [postId]);
-
-        const record = countsResult.rows[0] || {};
-        const counts = {
-            like_count: parseInt(record.like_count) || 0,
-            dislike_count: parseInt(record.dislike_count) || 0
-        };
-
-        let userReaction = null;
-        if (userId) {
-            const userResult = await pool.query(`
-                SELECT reaction_type 
-                FROM reactions 
-                WHERE user_id = $1 AND post_id = $2 AND comment_id IS NULL
-                LIMIT 1
-            `, [userId, postId]);
-            
-            userReaction = userResult.rows[0]?.reaction_type || null;
-        }
-
-        return { counts, userReaction };
-
-    } catch (err) {
-        console.error(`Error fetching metadata for post ${postId}:`, err.message);
-        return { counts: { like_count: 0, dislike_count: 0 }, userReaction: null };
-    }
-};
-
 // GET POST BY ID
 exports.getPostById = async (req, res) => {
     const { postId } = req.params;
@@ -318,8 +175,8 @@ exports.getPostById = async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 p.post_id, p.content_text, p.media_url, p.author_id, 
-                p.created_at, p.category_id, p.expires_at, p.pinned, 
-                u.username AS display_name, u.avatar_url AS author_avatar_url
+                p.created_at, p.expires_at, p.pinned, 
+                u.display_name AS author_name, u.avatar_url AS author_avatar_url
             FROM posts p
             INNER JOIN users u ON p.author_id = u.user_id
             WHERE p.post_id = $1 AND (p.expires_at IS NULL OR p.expires_at > CURRENT_TIMESTAMP)
@@ -327,24 +184,13 @@ exports.getPostById = async (req, res) => {
 
         const post = result.rows[0];
         if (!post) {
-            return res.status(404).json({ message: `Post with ID ${postId} not found.` });
+            return res.status(404).json({ error: `Post with ID ${postId} not found.` });
         }
 
-        const categoriesResult = await pool.query(`
-            SELECT c.category_id, c.category_name
-            FROM post_categories pc
-            JOIN categories c ON pc.category_id = c.category_id
-            WHERE pc.post_id = $1
-            ORDER BY c.category_name
-        `, [postId]);
+        const categoriesMap = await fetchBatchCategories([parseInt(postId)]);
+        post.categories = categoriesMap.get(parseInt(postId)) || [];
 
-        const categories = categoriesResult.rows.map(row => ({
-            category_id: row.category_id,
-            category_name: row.category_name
-        }));
-        post.categories = categories;
-
-        const metadata = await fetchPostMetadata(postId, userId);
+        const metadata = await fetchPostReactionMetadata(postId, userId);
         res.status(200).json(formatPost(post, metadata.counts, metadata.userReaction));
 
     } catch (err) {
@@ -373,82 +219,8 @@ exports.getPostsByCategory = async (req, res) => {
             return res.status(200).json([]);
         }
 
-        const postIds = result.rows.map(post => post.post_id);
-        let countsMap = new Map();
-        let userReactionsMap = new Map();
-
-        if (postIds.length > 0) {
-            const countsResult = await pool.query(`
-                SELECT 
-                    post_id,
-                    COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS like_count,
-                    COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) AS dislike_count
-                FROM reactions
-                WHERE post_id = ANY($1::int[]) AND comment_id IS NULL
-                GROUP BY post_id
-            `, [postIds]);
-
-            countsResult.rows.forEach(row => {
-                countsMap.set(row.post_id, {
-                    like_count: parseInt(row.like_count) || 0,
-                    dislike_count: parseInt(row.dislike_count) || 0
-                });
-            });
-
-            if (userId) {
-                const userReactionsResult = await pool.query(`
-                    SELECT post_id, reaction_type 
-                    FROM reactions 
-                    WHERE user_id = $1 AND post_id = ANY($2::int[]) AND comment_id IS NULL
-                `, [userId, postIds]);
-
-                userReactionsResult.rows.forEach(row => {
-                    userReactionsMap.set(row.post_id, row.reaction_type);
-                });
-            }
-
-            const categoriesMap = new Map();
-            const categoriesResult = await pool.query(`
-                SELECT pc.post_id, c.category_id, c.category_name
-                FROM post_categories pc
-                JOIN categories c ON pc.category_id = c.category_id
-                WHERE pc.post_id = ANY($1::int[])
-                ORDER BY pc.post_id, c.category_name
-            `, [postIds]);
-
-            categoriesResult.rows.forEach(row => {
-                if (!categoriesMap.has(row.post_id)) {
-                    categoriesMap.set(row.post_id, []);
-                }
-                categoriesMap.get(row.post_id).push({
-                    category_id: row.category_id,
-                    category_name: row.category_name
-                });
-            });
-
-            const formattedPosts = result.rows.map(record => {
-                const counts = countsMap.get(record.post_id) || { like_count: 0, dislike_count: 0 };
-                const userReaction = userReactionsMap.get(record.post_id) || null;
-                const categories = categoriesMap.get(record.post_id) || [];
-                return {
-                    post_id: record.post_id,
-                    author_name: record.author_name,
-                    author_avatar_url: record.author_avatar_url || null,
-                    content_text: record.content_text,
-                    categories: categories,
-                    media_url: record.media_url,
-                    created_at: record.created_at,
-                    expires_at: record.expires_at,
-                    pinned: record.pinned || false,
-                    reaction_counts: counts,
-                    user_reaction_type: userReaction,
-                };
-            });
-            
-            res.status(200).json(formattedPosts);
-        } else {
-            res.status(200).json([]);
-        }
+        const formattedPosts = await enrichPostsWithMetadata(result.rows, userId);
+        res.status(200).json(formattedPosts);
         
     } catch (err) {
         console.error('Error fetching posts by category:', err.message);

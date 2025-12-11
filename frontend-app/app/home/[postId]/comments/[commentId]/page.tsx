@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, use, useCallback } from 'react'
+import { useState, useEffect, use, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/utils/api'
 import { Comment } from '@/app/actions'
 import PostCommentsSection from '@/components/commentSection'
+import { toast } from '@/utils/toast'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -26,6 +27,7 @@ export default function CommentPage({
     const [loadingReplies, setLoadingReplies] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
+    const hasRedirected = useRef(false);
 
     const fetchReplies = useCallback(async () => {
         setLoadingReplies(true);
@@ -44,7 +46,9 @@ export default function CommentPage({
         const authToken = localStorage.getItem('token');
         setToken(authToken);
 
-        if (!authToken) {
+        if (!authToken && !hasRedirected.current) {
+            hasRedirected.current = true;
+            toast.info('Please log in to view posts and comments');
             router.push('/login');
             return;
         }

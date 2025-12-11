@@ -1,40 +1,5 @@
 const { pool } = require('../db');
-
-const fetchPostReactionMetadata = async (postId, userId) => {
-    try {
-        const countsResult = await pool.query(`
-            SELECT 
-                COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS like_count,
-                COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) AS dislike_count
-            FROM reactions
-            WHERE post_id = $1 AND comment_id IS NULL
-        `, [postId]);
-
-        const record = countsResult.rows[0] || {};
-        const counts = {
-            like_count: parseInt(record.like_count) || 0,
-            dislike_count: parseInt(record.dislike_count) || 0
-        };
-
-        let userReaction = null;
-        if (userId) {
-            const userResult = await pool.query(`
-                SELECT reaction_type 
-                FROM reactions 
-                WHERE user_id = $1 AND post_id = $2 AND comment_id IS NULL
-                LIMIT 1
-            `, [userId, postId]);
-            
-            userReaction = userResult.rows[0]?.reaction_type || null;
-        }
-
-        return { counts, userReaction };
-
-    } catch (err) {
-        console.error(`Error fetching reaction metadata for post ${postId}:`, err.message);
-        return { counts: { like_count: 0, dislike_count: 0 }, userReaction: null };
-    }
-};
+const { fetchPostReactionMetadata } = require('../utils/postHelpers');
 
 // GET POST REACTION
 exports.getPostReaction = async (req, res) => {

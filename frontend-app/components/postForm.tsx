@@ -138,8 +138,8 @@ export default function PostForm({ onPostCreated }: PostFormProps): ReactElement
     return (
         <Card header={header} className="post-form-card" style={{ marginBottom: '2rem' }}>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
+                <div className="post-form-row">
+                    <div className="post-form-fields">
                         <div className="p-field">
                             <label htmlFor="contentText" className="p-label">What&apos;s on your mind?</label>
                             <InputTextarea

@@ -177,5 +177,27 @@ select.input option {
   .category-checkbox-list {
     flex-direction: column;
   }
+
+  .post-form-row {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .post-form-fields {
+    width: 100% !important;
+  }
+}
+
+.post-form-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.post-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
 }
 

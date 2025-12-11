@@ -4,7 +4,6 @@ import { ReactElement, useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Button } from 'primereact/button'
 import { isAuthenticated } from '@/utils/auth'
-import './Navigation.css'
 
 export default function Navigation(): ReactElement {
     const router = useRouter()

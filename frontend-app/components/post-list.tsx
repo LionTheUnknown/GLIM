@@ -73,10 +73,18 @@ export function PostList({ posts, onPostDeleted, onPostUpdated }: { posts : Post
             </div>
         );
     }
-    
+
+    const sortedPosts = [...visiblePosts].sort((a, b) => {
+
+        if (!a.expires_at && !b.expires_at) return 0
+        if (!a.expires_at) return 1
+        if (!b.expires_at) return -1
+        return new Date(a.expires_at).getTime() - new Date(b.expires_at).getTime()
+    })
+
     return (
         <div className="post-list-container">
-            {visiblePosts.map((postItem) => (
+            {sortedPosts.map((postItem) => (
                 <div
                     key={postItem.post_id}
                     className={`post-list-item ${expiringPosts.has(postItem.post_id) ? 'post-expiring' : ''}`}

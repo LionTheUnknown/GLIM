@@ -3,10 +3,12 @@
 import { usePathname } from 'next/navigation';
 import Plasma from './Plasma';
 
+const PLASMA_PAGES = ['/login', '/register'];
+
 export default function PlasmaBackground() {
   const pathname = usePathname();
   
-  if (pathname === '/home' || pathname === '/' || pathname === '/profile') {
+  if (!PLASMA_PAGES.includes(pathname || '')) {
     return null;
   }
   

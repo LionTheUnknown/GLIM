@@ -265,7 +265,7 @@ exports.getMyPosts = async (req, res) => {
 
     try {
         const result = await pool.query(`
-            SELECT posts.post_id, posts.content_text, posts.category_id, 
+            SELECT posts.post_id, posts.content_text,
                 users.display_name AS author_name, users.avatar_url AS author_avatar_url,
                 posts.created_at, posts.expires_at, posts.media_url, posts.pinned
             FROM posts
@@ -278,76 +278,8 @@ exports.getMyPosts = async (req, res) => {
             return res.status(200).json([]);
         }
 
-        const postIds = result.rows.map(row => row.post_id);
-
-        const countsResult = await pool.query(`
-            SELECT 
-                post_id,
-                COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS like_count,
-                COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) AS dislike_count
-            FROM reactions
-            WHERE post_id = ANY($1::int[]) AND comment_id IS NULL
-            GROUP BY post_id
-        `, [postIds]);
-
-        const countsMap = {};
-        countsResult.rows.forEach(row => {
-            countsMap[row.post_id] = {
-                like_count: parseInt(row.like_count) || 0,
-                dislike_count: parseInt(row.dislike_count) || 0
-            };
-        });
-
-        const userReactionsResult = await pool.query(`
-            SELECT post_id, reaction_type
-            FROM reactions
-            WHERE user_id = $1 AND post_id = ANY($2::int[]) AND comment_id IS NULL
-        `, [userId, postIds]);
-
-        const userReactionsMap = {};
-        userReactionsResult.rows.forEach(row => {
-            userReactionsMap[row.post_id] = row.reaction_type;
-        });
-
-        const categoriesMap = new Map();
-        if (postIds.length > 0) {
-            const categoriesResult = await pool.query(`
-                SELECT pc.post_id, c.category_id, c.category_name
-                FROM post_categories pc
-                JOIN categories c ON pc.category_id = c.category_id
-                WHERE pc.post_id = ANY($1::int[])
-                ORDER BY pc.post_id, c.category_name
-            `, [postIds]);
-
-            categoriesResult.rows.forEach(row => {
-                if (!categoriesMap.has(row.post_id)) {
-                    categoriesMap.set(row.post_id, []);
-                }
-                categoriesMap.get(row.post_id).push({
-                    category_id: row.category_id,
-                    category_name: row.category_name
-                });
-            });
-        }
-
-        const formattedPosts = result.rows.map(record => {
-            const postId = record.post_id;
-            const categories = categoriesMap.get(postId) || [];
-            return {
-                post_id: postId,
-                author_name: record.author_name,
-                author_avatar_url: record.author_avatar_url || null,
-                content_text: record.content_text,
-                categories: categories,
-                created_at: record.created_at,
-                expires_at: record.expires_at,
-                media_url: record.media_url,
-                pinned: record.pinned || false,
-                reaction_counts: countsMap[postId] || { like_count: 0, dislike_count: 0 },
-                user_reaction_type: userReactionsMap[postId] || null,
-            };
-        });
-        
+        const { enrichPostsWithMetadata } = require('../utils/postHelpers');
+        const formattedPosts = await enrichPostsWithMetadata(result.rows, userId);
         res.status(200).json(formattedPosts);
         
     } catch (err) {
