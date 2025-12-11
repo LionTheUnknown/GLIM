@@ -39,11 +39,10 @@
 
 .profile-avatar-clickable {
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: box-shadow 0.2s;
 }
 
 .profile-avatar-clickable:hover {
-  transform: scale(1.05);
   box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
 }
 
@@ -95,7 +94,6 @@
   background: #dc3545;
   border-color: #dc3545;
   color: white;
-  transform: scale(1.1);
 }
 
 .profile-avatar-delete:disabled {

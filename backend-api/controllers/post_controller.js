@@ -7,7 +7,7 @@ exports.getAllPosts = async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT DISTINCT posts.post_id, posts.content_text, posts.category_id, 
-                users.display_name AS author_name, 
+                users.display_name AS author_name, users.avatar_url AS author_avatar_url,
                 posts.created_at, posts.expires_at, posts.media_url, posts.pinned
             FROM posts
             JOIN users ON posts.author_id = users.user_id 
@@ -80,6 +80,7 @@ exports.getAllPosts = async (req, res) => {
             return {
                 post_id: postId,
                 author_name: record.author_name,
+                author_avatar_url: record.author_avatar_url || null,
                 content_text: record.content_text,
                 categories: categories,
                 created_at: record.created_at,
@@ -249,6 +250,7 @@ const formatPost = (post, reactionCounts, userReactionType) => {
         media_url,
         author_id,
         display_name: author_name,
+        author_avatar_url,
         created_at,
         category_name,
         expires_at,
@@ -261,6 +263,7 @@ const formatPost = (post, reactionCounts, userReactionType) => {
         media_url,
         author_id,
         author_name,
+        author_avatar_url: author_avatar_url || null,
         created_at,
         categories: post.categories || [],
         expires_at,
@@ -315,7 +318,8 @@ exports.getPostById = async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 p.post_id, p.content_text, p.media_url, p.author_id, 
-                p.created_at, p.category_id, p.expires_at, p.pinned, u.username AS display_name
+                p.created_at, p.category_id, p.expires_at, p.pinned, 
+                u.username AS display_name, u.avatar_url AS author_avatar_url
             FROM posts p
             INNER JOIN users u ON p.author_id = u.user_id
             WHERE p.post_id = $1 AND (p.expires_at IS NULL OR p.expires_at > CURRENT_TIMESTAMP)
@@ -357,7 +361,7 @@ exports.getPostsByCategory = async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT DISTINCT p.post_id, p.content_text, p.media_url, p.created_at, p.expires_at, p.pinned,
-                   u.display_name AS author_name
+                   u.display_name AS author_name, u.avatar_url AS author_avatar_url
             FROM posts p
             JOIN users u ON p.author_id = u.user_id 
             JOIN post_categories pc ON p.post_id = pc.post_id
@@ -429,6 +433,7 @@ exports.getPostsByCategory = async (req, res) => {
                 return {
                     post_id: record.post_id,
                     author_name: record.author_name,
+                    author_avatar_url: record.author_avatar_url || null,
                     content_text: record.content_text,
                     categories: categories,
                     media_url: record.media_url,
