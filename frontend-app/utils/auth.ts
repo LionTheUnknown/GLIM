@@ -26,3 +26,7 @@ export const isAuthenticated = (): boolean => {
     if (typeof window === 'undefined') return false;
     return !!localStorage.getItem('token');
 };
+
+export const isAdmin = (): boolean => {
+    return getUserRole() === 'admin';
+};

@@ -1,57 +1,68 @@
 "use client";
 
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, FormEvent, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { Card } from 'primereact/card';
+import { InputText } from 'primereact/inputtext';
+import { Password } from 'primereact/password';
+import { Button } from 'primereact/button';
+import { toast } from '@/utils/toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const RegisterPage = () => {
     const router = useRouter();
+    const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         username: '',
         email: '',
         password: '',
         confirmPassword: ''
     });
-    const [message, setMessage] = useState('');
-    const [error, setError] = useState<string | null>(null);
 
-    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
+    useEffect(() => {
+        return () => {
+            if (redirectTimeoutRef.current) {
+                clearTimeout(redirectTimeoutRef.current);
+            }
+        };
+    }, []);
+
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setMessage('');
-        setError(null);
         
         if (!formData.username || !formData.email || !formData.password) {
-             return setError('Please fill in username, email, and password.');
+            toast.error('Validation error', 'Please fill in username, email, and password');
+            return;
         }
 
         if (formData.password !== formData.confirmPassword) {
-            return setError('Passwords do not match.');
+            toast.error('Password mismatch', 'Passwords do not match');
+            return;
         }
+
+        setLoading(true);
 
         try {
             const endpoint = `${API_BASE_URL}/api/users/register`;
             
             const payload = {
-            username: formData.username,
-            email: formData.email,
-            password: formData.password,
-            display_name: formData.username
-        };
+                username: formData.username,
+                email: formData.email,
+                password: formData.password,
+                display_name: formData.username
+            };
 
             await axios.post(endpoint, payload);
 
-            setMessage('Registration successful! Please log in.');
-            setTimeout(() => {
-                router.push('/login'); 
-            }, 2000);
+            toast.success('Registration successful!', 'Please log in');
             
+            redirectTimeoutRef.current = setTimeout(() => {
+                router.push('/login'); 
+            }, 1500);
 
         } catch (err: unknown) {
             let errorMessage = 'Registration failed due to an unknown error.';
@@ -59,81 +70,96 @@ const RegisterPage = () => {
             if (axios.isAxiosError(err) && err.response) {
                 errorMessage = err.response.data.details || err.response.data.error || 'Check server logs.';
             } else if (err instanceof Error) {
-                 errorMessage = err.message;
+                errorMessage = err.message;
             }
             
-            setError(errorMessage);
+            toast.error('Registration failed', errorMessage);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
         <div className="auth-container">
-            <div className="auth-card">
-                <h2 className="auth-title">Create Your Account</h2>
-                
-                <form onSubmit={handleSubmit} className="auth-form">
-                    <div className="form-group">
-                        <label htmlFor="username" className="label">Username</label>
-                        <input 
-                            type="text" 
+            <Card 
+                title="Create Your Account"
+                className="auth-card"
+                style={{ maxWidth: '400px', width: '100%' }}
+            >
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="p-field">
+                        <label htmlFor="username" className="p-label">Username</label>
+                        <InputText
                             id="username"
-                            name="username" 
-                            value={formData.username} 
-                            onChange={handleChange} 
-                            required 
-                            className="input"
+                            value={formData.username}
+                            onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                            required
                             placeholder="Choose a username"
+                            style={{ width: '100%' }}
                         />
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="email" className="label">Email</label>
-                        <input 
-                            type="email" 
+                    <div className="p-field">
+                        <label htmlFor="email" className="p-label">Email</label>
+                        <InputText
                             id="email"
-                            name="email" 
-                            value={formData.email} 
-                            onChange={handleChange} 
-                            required 
-                            className="input"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                            required
                             placeholder="your.email@example.com"
+                            style={{ width: '100%' }}
                         />
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="password" className="label">Password</label>
-                        <input 
-                            type="password" 
+                    <div className="p-field">
+                        <label htmlFor="password" className="p-label">Password</label>
+                        <Password
                             id="password"
-                            name="password" 
-                            value={formData.password} 
-                            onChange={handleChange} 
-                            required 
-                            className="input"
+                            inputId="password"
+                            value={formData.password}
+                            onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                            required
                             placeholder="Create a secure password"
+                            feedback={false}
+                            toggleMask
+                            style={{ width: '100%' }}
                         />
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="confirmPassword" className="label">Confirm Password</label>
-                        <input 
-                            type="password" 
+                    <div className="p-field">
+                        <label htmlFor="confirmPassword" className="p-label">Confirm Password</label>
+                        <Password
                             id="confirmPassword"
-                            name="confirmPassword" 
-                            value={formData.confirmPassword} 
-                            onChange={handleChange} 
-                            required 
-                            className="input"
+                            inputId="confirmPassword"
+                            value={formData.confirmPassword}
+                            onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                            required
                             placeholder="Confirm your password"
+                            feedback={false}
+                            toggleMask
+                            style={{ width: '100%' }}
                         />
                     </div>
-                    <button 
+                    <Button 
                         type="submit" 
-                        className="btn btn-primary auth-submit-btn"
-                    >
-                        Register
-                    </button>
+                        label="Register"
+                        icon="pi pi-user-plus"
+                        loading={loading}
+                        disabled={loading}
+                        style={{ width: '100%' }}
+                    />
                 </form>
-                {message && <p className="success-message auth-message">{message}</p>}
-                {error && <p className="error-message auth-message">Error: {error}</p>}
-            </div>
+                <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                        Already have an account?
+                    </p>
+                    <Button
+                        label="Login"
+                        icon="pi pi-sign-in"
+                        onClick={() => router.push('/login')}
+                        outlined
+                        style={{ width: '100%' }}
+                    />
+                </div>
+            </Card>
         </div>
     );
 };

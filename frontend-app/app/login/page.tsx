@@ -1,33 +1,43 @@
 "use client";
 
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, FormEvent, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { Card } from 'primereact/card';
+import { InputText } from 'primereact/inputtext';
+import { Password } from 'primereact/password';
+import { Button } from 'primereact/button';
+import { toast } from '@/utils/toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const LoginPage = () => {
     const router = useRouter();
+    const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         identifier: '',
         password: '',
     });
-    const [message, setMessage] = useState('');
-    const [error, setError] = useState<string | null>(null);
 
-    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
+    useEffect(() => {
+        return () => {
+            if (redirectTimeoutRef.current) {
+                clearTimeout(redirectTimeoutRef.current);
+            }
+        };
+    }, []);
+
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setMessage('');
-        setError(null);
 
         if (!formData.identifier || !formData.password) {
-            return setError('Please fill in username or email and password.');
+            toast.error('Validation error', 'Please fill in username or email and password');
+            return;
         }
+
+        setLoading(true);
 
         try {
             const endpoint = `${API_BASE_URL}/api/users/login`;
@@ -39,17 +49,18 @@ const LoginPage = () => {
 
             const response = await axios.post(endpoint, payload);
 
-            setMessage('Login successful!');
-            setTimeout(() => {
-                router.push('/home');
-            }, 2000);
-
             const { token, refresh_token } = response.data;
 
             localStorage.setItem('token', token);
             if (refresh_token) {
                 localStorage.setItem('refresh_token', refresh_token);
             }
+
+            toast.success('Login successful!');
+            
+            redirectTimeoutRef.current = setTimeout(() => {
+                router.push('/home');
+            }, 1000);
 
             import('../../utils/auth').then(({ getUserRole }) => {
                 console.log('User Role:', getUserRole());
@@ -59,54 +70,76 @@ const LoginPage = () => {
             let errorMessage = 'Login failed due to an unknown error.';
 
             if (axios.isAxiosError(err) && err.response) {
-                errorMessage = err.response.data.details || err.response.data.error || 'Check server logs.';
+                if (err.response.status === 401) {
+                    errorMessage = 'Invalid username/email or password.';
+                } else {
+                    errorMessage = err.response.data.message || err.response.data.error || err.response.data.details || 'Check server logs.';
+                }
             } else if (err instanceof Error) {
                 errorMessage = err.message;
             }
 
-            setError(errorMessage);
+            toast.error('Login failed', errorMessage);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
         <div className="auth-container">
-            <div className="auth-card">
-                <h2 className="auth-title">Login To Your Account</h2>
-
-                <form onSubmit={handleSubmit} className="auth-form">
-                    <div className="form-group">
-                        <label htmlFor="identifier" className="label">Username or Email</label>
-                        <input
-                            type="text"
+            <Card 
+                title="Login To Your Account"
+                className="auth-card"
+                style={{ maxWidth: '400px', width: '100%' }}
+            >
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="p-field">
+                        <label htmlFor="identifier" className="p-label">Username or Email</label>
+                        <InputText
                             id="identifier"
-                            name="identifier"
                             value={formData.identifier}
-                            onChange={handleChange}
+                            onChange={(e) => setFormData(prev => ({ ...prev, identifier: e.target.value }))}
                             required
-                            className="input"
                             placeholder="Enter your username or email"
+                            style={{ width: '100%' }}
                         />
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="password" className="label">Password</label>
-                        <input
-                            type="password"
+                    <div className="p-field">
+                        <label htmlFor="password" className="p-label">Password</label>
+                        <Password
                             id="password"
-                            name="password"
+                            inputId="password"
                             value={formData.password}
-                            onChange={handleChange}
+                            onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                             required
-                            className="input"
                             placeholder="Enter your password"
+                            feedback={false}
+                            toggleMask
+                            style={{ width: '100%' }}
                         />
                     </div>
-                    <button type="submit" className="btn btn-primary auth-submit-btn">
-                        Login
-                    </button>
+                    <Button 
+                        type="submit" 
+                        label="Login"
+                        icon="pi pi-sign-in"
+                        loading={loading}
+                        disabled={loading}
+                        style={{ width: '100%' }}
+                    />
                 </form>
-                {message && <p className="success-message auth-message">{message}</p>}
-                {error && <p className="error-message auth-message">Error: {error}</p>}
-            </div>
+                <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                        Don&apos;t have an account?
+                    </p>
+                    <Button
+                        label="Register"
+                        icon="pi pi-user-plus"
+                        onClick={() => router.push('/register')}
+                        outlined
+                        style={{ width: '100%' }}
+                    />
+                </div>
+            </Card>
         </div>
     );
 };

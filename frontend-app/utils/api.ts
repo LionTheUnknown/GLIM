@@ -34,6 +34,10 @@ api.interceptors.response.use(
         const originalRequest = error.config;
         const refreshToken = localStorage.getItem('refresh_token');
 
+        if (originalRequest.url?.includes('/api/users/refresh')) {
+            return Promise.reject(error);
+        }
+
         if (
             refreshToken &&
             error.response &&
@@ -48,9 +52,12 @@ api.interceptors.response.use(
                     { headers: { 'Content-Type': 'application/json' } }
                 );
 
-                const { token: newAccessToken } = refreshResponse.data;
+                const { token: newAccessToken, refresh_token: newRefreshToken } = refreshResponse.data;
                 if (newAccessToken) {
                     localStorage.setItem('token', newAccessToken);
+                    if (newRefreshToken) {
+                        localStorage.setItem('refresh_token', newRefreshToken);
+                    }
                     originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                     return api(originalRequest);
                 }
@@ -58,6 +65,10 @@ api.interceptors.response.use(
                 console.error('Refresh token failed:', refreshError);
                 localStorage.removeItem('token');
                 localStorage.removeItem('refresh_token');
+                if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                    window.location.href = '/login';
+                }
+                return Promise.reject(refreshError);
             }
         }
 

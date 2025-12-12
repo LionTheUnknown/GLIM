@@ -14,7 +14,7 @@ exports.authenticateToken = (req, res, next) => {
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
-            return res.status(403).json({ message: 'Invalid or expired token.' });
+            return res.status(401).json({ message: 'Invalid or expired token.' });
         }
 
         req.user = { user_id: user.user_id, role: user.role };
@@ -23,7 +23,6 @@ exports.authenticateToken = (req, res, next) => {
     });
 };
 
-// Optional authentication - sets req.user if token is valid
 exports.optionalAuthenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -42,4 +41,17 @@ exports.optionalAuthenticateToken = (req, res, next) => {
         req.user = { user_id: user.user_id, role: user.role };
         next();
     });
+};
+
+exports.requireAdmin = (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({ message: 'Authentication required.' });
+    }
+
+    const userRole = req.user.role;
+    if (userRole !== 'admin' && userRole !== 'developer') {
+        return res.status(403).json({ message: 'Admin access required.' });
+    }
+
+    next();
 };

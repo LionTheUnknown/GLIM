@@ -59,6 +59,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/categories', categoriesRoutes);
+app.use('/api/admin', require('./routes/admin_routes'));
 
 // 404 handler
 app.use((req, res) => {

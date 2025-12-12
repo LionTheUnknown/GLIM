@@ -1,40 +1,5 @@
 const { pool } = require('../db');
-
-const fetchPostReactionMetadata = async (postId, userId) => {
-    try {
-        const countsResult = await pool.query(`
-            SELECT 
-                COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS like_count,
-                COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) AS dislike_count
-            FROM reactions
-            WHERE post_id = $1 AND comment_id IS NULL
-        `, [postId]);
-
-        const record = countsResult.rows[0] || {};
-        const counts = {
-            like_count: parseInt(record.like_count) || 0,
-            dislike_count: parseInt(record.dislike_count) || 0
-        };
-
-        let userReaction = null;
-        if (userId) {
-            const userResult = await pool.query(`
-                SELECT reaction_type 
-                FROM reactions 
-                WHERE user_id = $1 AND post_id = $2 AND comment_id IS NULL
-                LIMIT 1
-            `, [userId, postId]);
-            
-            userReaction = userResult.rows[0]?.reaction_type || null;
-        }
-
-        return { counts, userReaction };
-
-    } catch (err) {
-        console.error(`Error fetching reaction metadata for post ${postId}:`, err.message);
-        return { counts: { like_count: 0, dislike_count: 0 }, userReaction: null };
-    }
-};
+const { fetchPostReactionMetadata } = require('../utils/postHelpers');
 
 // GET POST REACTION
 exports.getPostReaction = async (req, res) => {
@@ -246,6 +211,56 @@ exports.getPostReactionCounts = async (req, res) => {
     }
 };
 
+// Helper function to adjust post expiration time
+const adjustPostExpiration = async (postId, hoursToAdd) => {
+    try {
+        // Get current expiration time
+        const postResult = await pool.query(`
+            SELECT expires_at 
+            FROM posts 
+            WHERE post_id = $1
+        `, [postId]);
+
+        if (postResult.rows.length === 0) {
+            return null;
+        }
+
+        const currentExpiresAt = postResult.rows[0].expires_at;
+        if (!currentExpiresAt) {
+            return null;
+        }
+
+        // Calculate new expiration time
+        const currentTime = new Date(currentExpiresAt);
+        const newExpiresAt = new Date(currentTime.getTime() + hoursToAdd * 60 * 60 * 1000);
+
+        // Ensure expiration is not in the past
+        const now = new Date();
+        if (newExpiresAt <= now) {
+            // If new expiration would be in the past, set it to 1 minute from now
+            const minExpiresAt = new Date(now.getTime() + 60 * 1000);
+            await pool.query(`
+                UPDATE posts
+                SET expires_at = $1, updated_at = CURRENT_TIMESTAMP
+                WHERE post_id = $2
+            `, [minExpiresAt, postId]);
+            return minExpiresAt;
+        }
+
+        // Update expiration time
+        await pool.query(`
+            UPDATE posts
+            SET expires_at = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE post_id = $2
+        `, [newExpiresAt, postId]);
+
+        return newExpiresAt;
+    } catch (err) {
+        console.error('Error adjusting post expiration:', err.message);
+        return null;
+    }
+};
+
 // HANDLE POST REACTION
 exports.handlePostReaction = async (req, res) => {
     const postId = req.params?.postId;
@@ -266,17 +281,81 @@ exports.handlePostReaction = async (req, res) => {
 
         const currentReaction = existing.rows[0]?.reaction_type || null;
         
+        // Determine if we're adding or removing a reaction
+        let isAddingReaction = false;
+        let isRemovingReaction = false;
+        let isChangingReaction = false;
+        
         if (currentReaction === reaction_type) {
-            return exports.deletePostReaction(req, res);
+            // Removing reaction
+            isRemovingReaction = true;
+        } else if (currentReaction !== null && currentReaction !== reaction_type) {
+            // Changing reaction
+            isChangingReaction = true;
+        } else if (currentReaction === null) {
+            // Adding reaction
+            isAddingReaction = true;
+        }
+
+        // Adjust expiration time based on reaction
+        if (isAddingReaction || isChangingReaction) {
+            // Like adds 1 hour, dislike subtracts 1 hour
+            const hoursToAdd = reaction_type === 'like' ? 1 : -1;
+            await adjustPostExpiration(postId, hoursToAdd);
+        } else if (isRemovingReaction) {
+            // Removing reaction reverses the effect
+            const hoursToAdd = currentReaction === 'like' ? -1 : 1;
+            await adjustPostExpiration(postId, hoursToAdd);
+        }
+
+        // Handle the reaction itself
+        if (currentReaction === reaction_type) {
+            await pool.query(`
+                DELETE FROM reactions 
+                WHERE user_id = $1 
+                AND post_id = $2 
+                AND comment_id IS NULL
+            `, [userId, postId]);
         }
         else if (currentReaction !== null && currentReaction !== reaction_type) {
-            return exports.updatePostReaction(req, res);
+            await pool.query(`
+                UPDATE reactions 
+                SET reaction_type = $1, created_at = CURRENT_TIMESTAMP
+                WHERE user_id = $2 
+                AND post_id = $3 
+                AND comment_id IS NULL
+            `, [reaction_type, userId, postId]);
         }
         else if (currentReaction === null) {
-            return exports.createPostReaction(req, res);
+            await pool.query(`
+                INSERT INTO reactions (user_id, post_id, reaction_type, created_at)
+                VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+            `, [userId, postId, reaction_type]);
+        } else {
+            return res.status(400).json({ error: "Invalid reaction type or no change." });
         }
-        
-        return res.status(400).json({ error: "Invalid reaction type or no change." });
+
+        // Get updated expiration time and reaction metadata
+        const postResult = await pool.query(`
+            SELECT expires_at 
+            FROM posts 
+            WHERE post_id = $1
+        `, [postId]);
+        const newExpiresAt = postResult.rows[0]?.expires_at || null;
+        const metadata = await fetchPostReactionMetadata(postId, userId);
+
+        // Return response with expiration
+        const statusCode = currentReaction === reaction_type ? 200 : 
+                          (currentReaction !== null ? 200 : 201);
+        const message = currentReaction === reaction_type ? 'Reaction deleted successfully.' :
+                       (currentReaction !== null ? 'Reaction updated successfully.' : 'Reaction created successfully.');
+
+        return res.status(statusCode).json({ 
+            message,
+            reaction_counts: metadata.counts,
+            user_reaction_type: metadata.userReaction,
+            expires_at: newExpiresAt
+        });
 
     } catch (err) {
         console.error('Error handling post reaction:', err.message);

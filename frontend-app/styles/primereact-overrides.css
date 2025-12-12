@@ -1,0 +1,421 @@
+.p-card {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-card.post-card {
+  background: rgba(31, 31, 31, 0.6) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-card .p-card-header {
+  background: transparent !important;
+  border-bottom-color: rgba(42, 42, 42, 0.8) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-card .p-card-title {
+  color: var(--text-primary) !important;
+  text-align: center !important;
+}
+
+.p-card .p-card-body {
+  color: var(--text-primary) !important;
+  padding: 0 !important;
+}
+
+.p-card .p-card-content {
+  padding: 0 !important;
+}
+
+.p-inputtext,
+.p-inputtextarea {
+  background: rgba(26, 26, 26, 0.5) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+  color: var(--text-primary) !important;
+  box-sizing: border-box !important;
+}
+
+.p-password {
+  width: 100% !important;
+  display: flex !important;
+}
+
+.p-password .p-inputwrapper,
+.p-password .p-inputwrapper-filled {
+  width: 100% !important;
+  flex: 1 !important;
+  display: flex !important;
+  min-width: 0 !important;
+}
+
+.p-password .p-icon-field {
+  width: 100% !important;
+  display: flex !important;
+}
+
+.p-password input,
+.p-password .p-password-input {
+  background: rgba(26, 26, 26, 0.5) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+  color: var(--text-primary) !important;
+  width: 100% !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.p-inputtext:enabled:focus,
+.p-inputtextarea:enabled:focus {
+  border-color: rgba(42, 42, 42, 0.8) !important;
+  box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.2) !important;
+}
+
+.p-password input:enabled:focus,
+.p-password .p-password-input:enabled:focus {
+  border-color: rgba(42, 42, 42, 0.8) !important;
+  box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.2) !important;
+}
+
+.p-inputtext:enabled:hover,
+.p-inputtextarea:enabled:hover {
+  border-color: rgba(58, 58, 58, 0.8) !important;
+}
+
+.p-password input:enabled:hover,
+.p-password .p-password-input:enabled:hover {
+  border-color: rgba(58, 58, 58, 0.8) !important;
+}
+
+.p-inputtext::placeholder,
+.p-inputtextarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.p-password-panel {
+  background: var(--bg-card) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-multiselect {
+  background: rgba(26, 26, 26, 0.5) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-multiselect:not(.p-disabled):hover {
+  border-color: rgba(58, 58, 58, 0.8) !important;
+}
+
+.p-multiselect:not(.p-disabled).p-focus {
+  border-color: rgba(42, 42, 42, 0.8) !important;
+  box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.2) !important;
+}
+
+.p-multiselect-label {
+  color: var(--text-primary) !important;
+}
+
+.p-multiselect-token {
+  background: var(--accent) !important;
+  color: white !important;
+}
+
+.p-multiselect-token-icon {
+  color: white !important;
+}
+
+.p-multiselect-panel {
+  background: var(--bg-card) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-multiselect-items-wrapper {
+  background: var(--bg-card) !important;
+}
+
+.p-multiselect-item {
+  color: var(--text-primary) !important;
+}
+
+.p-multiselect-item:hover {
+  background: rgba(42, 42, 42, 0.5) !important;
+}
+
+.p-multiselect-item.p-highlight {
+  background: rgba(255, 107, 53, 0.2) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-multiselect-item.p-focus {
+  background: rgba(255, 107, 53, 0.1) !important;
+}
+
+.p-multiselect-header {
+  background: var(--bg-secondary) !important;
+  border-bottom-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-multiselect-filter-container .p-inputtext {
+  background: rgba(26, 26, 26, 0.5) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-multiselect-trigger {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+}
+
+.p-multiselect-trigger:hover {
+  background: rgba(42, 42, 42, 0.5) !important;
+}
+
+.p-multiselect-label-container {
+  color: var(--text-muted) !important;
+}
+
+.p-multiselect-label-container:not(.p-multiselect-label-empty) {
+  color: var(--text-primary) !important;
+}
+
+.p-button {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: white !important;
+}
+
+.p-button:enabled:hover {
+  background: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
+}
+
+.p-button:enabled:focus {
+  box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.5) !important;
+}
+
+.p-button:enabled:active {
+  background: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
+}
+
+.p-button.p-button-outlined {
+  background: transparent !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-button.p-button-outlined:enabled:hover {
+  background: rgba(42, 42, 42, 0.5) !important;
+  border-color: rgba(58, 58, 58, 0.8) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-button.p-button-outlined:enabled:focus {
+  box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.3) !important;
+}
+
+.p-button.p-button-outlined:enabled:active {
+  background: rgba(42, 42, 42, 0.7) !important;
+}
+
+.p-button:disabled {
+  opacity: 0.5 !important;
+}
+
+.p-button-icon-only .p-button-icon {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+.p-message.p-message-success {
+  background: rgba(34, 197, 94, 0.1) !important;
+  border-color: rgba(34, 197, 94, 0.3) !important;
+  color: #22c55e !important;
+}
+
+.p-message.p-message-error {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #ef4444 !important;
+}
+
+.p-message.p-message-info {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  color: #3b82f6 !important;
+}
+
+.p-message.p-message-warn {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+  color: #f59e0b !important;
+}
+
+.p-message-text {
+  color: inherit !important;
+}
+
+.p-label {
+  color: var(--text-secondary) !important;
+}
+
+.p-dialog {
+  background: var(--bg-card) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-dialog-header {
+  background: rgba(26, 26, 26, 0.5) !important;
+  border-bottom-color: rgba(42, 42, 42, 0.8) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-dialog-title {
+  color: var(--text-primary) !important;
+}
+
+.p-dialog-content {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+.p-dialog-footer {
+  background: rgba(26, 26, 26, 0.5) !important;
+  border-top-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-dialog-mask {
+  background: rgba(0, 0, 0, 0.7) !important;
+}
+
+.p-dialog-close-icon {
+  color: var(--text-secondary) !important;
+}
+
+.p-dialog-close-icon:hover {
+  color: var(--text-primary) !important;
+}
+
+.p-toast .p-toast-message {
+  background: var(--bg-card) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-success {
+  border-left-color: var(--success) !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-error {
+  border-left-color: var(--error) !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-info {
+  border-left-color: #3b82f6 !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-warn {
+  border-left-color: #f59e0b !important;
+}
+
+.p-toast .p-toast-message-text {
+  color: var(--text-primary) !important;
+}
+
+.p-toast .p-toast-summary {
+  color: var(--text-primary) !important;
+}
+
+.p-toast .p-toast-detail {
+  color: var(--text-secondary) !important;
+}
+
+.p-toast .p-toast-icon-close {
+  color: var(--text-secondary) !important;
+}
+
+.p-toast .p-toast-icon-close:hover {
+  color: var(--text-primary) !important;
+}
+
+.auth-container .p-card {
+  background: rgba(31, 31, 31, 0.6) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.auth-container .p-card .p-card-title {
+  background: linear-gradient(135deg, var(--flame-gold), var(--flame-orange)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.profile-card.p-card {
+  background: rgba(31, 31, 31, 0.6) !important;
+}
+
+.profile-card.p-card .p-card-body {
+  padding: 1.25rem 1.5rem !important;
+}
+
+.auth-card.p-card {
+  background: rgba(31, 31, 31, 0.65) !important;
+  border-color: rgba(42, 42, 42, 0.6) !important;
+}
+
+.auth-card.p-card .p-card-body {
+  padding: 1.5rem 1.5rem 1.25rem !important;
+}
+
+.auth-card.p-card .p-card-title {
+  text-align: center !important;
+  padding: 0 0 0.75rem 0 !important;
+}
+
+.categories-multiselect .p-multiselect-label {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.25rem !important;
+  white-space: normal !important;
+  min-height: 2.5rem !important;
+  align-items: flex-start !important;
+}
+
+.categories-multiselect .p-multiselect-token {
+  margin: 0.125rem 0.25rem 0.125rem 0 !important;
+}
+
+.post-form-card.p-card {
+  background: rgba(31, 31, 31, 0.6) !important;
+  border-color: rgba(42, 42, 42, 0.5) !important;
+}
+
+.post-form-card.p-card .p-card-body {
+  padding: 1rem !important;
+}
+
+.post-form-card.p-card .p-card-header {
+  padding: 0.75rem 1rem !important;
+}
+
+.p-checkbox .p-checkbox-box {
+  background: rgba(26, 26, 26, 0.5) !important;
+  border-color: rgba(42, 42, 42, 0.8) !important;
+}
+
+.p-checkbox .p-checkbox-box:hover {
+  border-color: rgba(58, 58, 58, 0.8) !important;
+}
+
+.p-checkbox .p-checkbox-box.p-highlight,
+.p-checkbox.p-highlight .p-checkbox-box {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+.p-checkbox .p-checkbox-box.p-highlight:hover,
+.p-checkbox.p-highlight .p-checkbox-box:hover {
+  background: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
+}

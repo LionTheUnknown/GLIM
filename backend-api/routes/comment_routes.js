@@ -12,8 +12,4 @@ router.get('/:commentId', commentController.getComment);
 const reactionRouter = require('./comment_reaction_routes');
 router.use('/:commentId/reactions', reactionRouter);
 
-// router.get('/:commentId/reactions', reactionController.getCommentReactionCounts);
-
-// router.post('/:commentId/reactions', authenticateToken, reactionController.handleCommentReaction);
-
 module.exports = router;

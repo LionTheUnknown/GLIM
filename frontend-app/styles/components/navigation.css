@@ -1,0 +1,162 @@
+.navigation {
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+}
+
+.navigation-desktop {
+  gap: 0.75rem;
+}
+
+.desktop-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hamburger-button {
+  color: var(--text-primary) !important;
+}
+
+.hamburger-button.p-button {
+  padding: 0.35rem !important;
+  width: 32px !important;
+  height: 32px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.hamburger-button .p-button-icon {
+  color: var(--text-primary) !important;
+  font-size: 0.9rem !important;
+}
+
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.mobile-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100vh;
+  background: var(--bg-card);
+  border-right: 1px solid rgba(42, 42, 42, 0.8);
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 1001;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease;
+  overflow-y: auto;
+}
+
+.mobile-menu .p-button {
+  justify-content: flex-start !important;
+  text-align: left !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 6px !important;
+  transition: all 0.2s !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--text-primary) !important;
+}
+
+.mobile-menu .p-button .p-button-icon {
+  color: var(--text-secondary) !important;
+  transition: color 0.2s !important;
+}
+
+.mobile-menu .p-button:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.mobile-menu .p-button:hover .p-button-icon {
+  color: var(--accent) !important;
+}
+
+.mobile-menu .p-button.active {
+  background: rgba(255, 107, 53, 0.1) !important;
+  border-color: rgba(255, 107, 53, 0.3) !important;
+  color: var(--accent) !important;
+}
+
+.mobile-menu .p-button.active .p-button-icon {
+  color: var(--accent) !important;
+}
+
+.mobile-menu-divider {
+  height: 1px;
+  background: rgba(42, 42, 42, 0.8);
+  margin: 1rem 0;
+}
+
+.dev-mode-badge {
+  background: var(--accent);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
+}
+
+.dev-mode-badge-mobile {
+  background: var(--accent);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.dev-mode-button-active {
+  background: rgba(255, 107, 53, 0.2) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.hamburger-button {
+  display: block !important;
+}
+
+@media (min-width: 769px) {
+  .mobile-menu {
+    width: 320px;
+  }
+}

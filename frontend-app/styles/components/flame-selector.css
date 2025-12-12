@@ -1,0 +1,111 @@
+.flame-duration-selector {
+  width: fit-content;
+}
+
+.flame-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  height: 100%;
+  padding: 0.5rem;
+  position: relative;
+}
+
+.flame-clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 50%;
+  width: 106px;
+  height: 106px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(255, 107, 53, 0.05) 0%, transparent 70%);
+  border: 2px solid rgba(42, 42, 42, 0.5);
+  position: relative;
+  overflow: hidden;
+  align-self: flex-start;
+  margin-top: 1.75rem;
+}
+
+.flame-clickable:hover:not(:disabled) {
+  transform: scale(1.05);
+  border-color: rgba(255, 107, 53, 0.5);
+  background: radial-gradient(circle, rgba(255, 107, 53, 0.1) 0%, transparent 70%);
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.2);
+}
+
+.flame-clickable:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.flame-clickable:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.flame-ascii {
+  font-family: 'Courier New', monospace;
+  font-size: 0.35rem;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  white-space: pre;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+  user-select: none;
+  letter-spacing: 0.2px;
+  position: absolute;
+  top: 50%;
+  left: 40%;
+  transform: translate(calc(-50% - 8px), -50%);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flame-loading {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  padding: 2rem;
+}
+
+.flame-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  position: absolute;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+}
+
+.flame-click-hint {
+  font-size: 0.55rem;
+  font-weight: 400;
+  color: #ffffff;
+}
+
+
+@media (max-width: 768px) {
+  .flame-clickable {
+    width: 140px;
+    height: 140px;
+  }
+
+  .flame-ascii {
+    font-size: 0.3rem;
+  }
+}
+

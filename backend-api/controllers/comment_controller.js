@@ -75,7 +75,7 @@ exports.getComment = async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT c.comment_id, c.post_id, c.content_text, c.parent_comment_id,
-                u.display_name AS author_name, 
+                u.display_name AS author_name, u.avatar_url AS author_avatar_url,
                 c.created_at
             FROM comments c
             JOIN users u ON c.author_id = u.user_id 
@@ -92,6 +92,7 @@ exports.getComment = async (req, res) => {
             post_id: comment.post_id,
             content_text: comment.content_text,
             author_name: comment.author_name,
+            author_avatar_url: comment.author_avatar_url || null,
             created_at: comment.created_at,
             parent_comment_id: comment.parent_comment_id,
         });
@@ -190,7 +191,7 @@ exports.getCommentsByPost = async (req, res) => {
 
         const result = await pool.query(`
             SELECT c.comment_id, c.post_id, c.content_text, c.parent_comment_id,
-                u.display_name AS author_name, 
+                u.display_name AS author_name, u.avatar_url AS author_avatar_url,
                 c.created_at
             FROM comments c
             JOIN users u ON c.author_id = u.user_id 
@@ -203,6 +204,7 @@ exports.getCommentsByPost = async (req, res) => {
             post_id: record.post_id,
             content_text: record.content_text,
             author_name: record.author_name,
+            author_avatar_url: record.author_avatar_url || null,
             created_at: record.created_at, 
             parent_comment_id: record.parent_comment_id,
         }));

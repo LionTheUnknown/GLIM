@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useEffect, useCallback, ReactElement, use } from 'react'
+import { useState, useEffect, useCallback, ReactElement, use, useRef } from 'react'
 import axios from 'axios'
 import api from '@/utils/api'
 import { useRouter } from 'next/navigation'
-import { Post, Comment } from '@/app/actions'
-import HighlightedPost from '@/components/highlighted-post'
+import { Post as PostType, Comment } from '@/app/actions'
+import Post from '@/components/post'
 import PostCommentsSection from '@/components/commentSection'
+import { toast } from '@/utils/toast'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
-interface PostWithReactions extends Post {
+interface PostWithReactions extends PostType {
     reaction_counts: {
         like_count: number;
         dislike_count: number;
@@ -19,7 +20,8 @@ interface PostWithReactions extends Post {
 }
 
 export default function PostPage({ params }: { params: Promise<{ postId: string }> }): ReactElement {
-    const { postId } = use(params);
+    const unwrappedParams = use(params);
+    const { postId } = unwrappedParams;
     const router = useRouter();
     const [postData, setPostData] = useState<PostWithReactions | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
@@ -27,12 +29,56 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
     const [loadingComments, setLoadingComments] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null)
+    const hasRedirected = useRef(false)
 
     const fetchComments = useCallback(async () => {
         setLoadingComments(true);
         try {
             const response = await api.get(`${API_BASE_URL}/api/posts/${postId}/comments`);
-            setComments(response.data);
+            const commentsData = response.data;
+            
+            // get reaction data for each comment
+            const token = localStorage.getItem('token');
+            const commentsWithReactions = await Promise.all(
+                commentsData.map(async (comment: Comment) => {
+                    try {
+                        // get reaction counts
+                        const countsResponse = await api.get(
+                            `${API_BASE_URL}/api/posts/${postId}/comments/${comment.comment_id}/reactions`
+                        );
+                        
+                        let userReaction: 'like' | 'dislike' | null = null;
+                        if (token) {
+                            try {
+                                // get user reaction if authenticated
+                                const userReactionResponse = await axios.get(
+                                    `${API_BASE_URL}/api/posts/${postId}/comments/${comment.comment_id}/reactions/me`,
+                                    { headers: { Authorization: `Bearer ${token}` } }
+                                );
+                                userReaction = userReactionResponse.data?.user_reaction_type || null;
+                            } catch (_err) {
+                                // 404 means no reaction
+                                userReaction = null;
+                            }
+                        }
+                        
+                        return {
+                            ...comment,
+                            reaction_counts: countsResponse.data || { like_count: 0, dislike_count: 0 },
+                            user_reaction_type: userReaction
+                        };
+                    } catch (_err) {
+                        // if reaction get fails, return comment without reactions
+                        return {
+                            ...comment,
+                            reaction_counts: { like_count: 0, dislike_count: 0 },
+                            user_reaction_type: null
+                        };
+                    }
+                })
+            );
+            
+            setComments(commentsWithReactions);
         } catch (err) {
             console.error("Failed to load comments:", err);
             setComments([]);
@@ -53,7 +99,12 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
         } catch (err: unknown) {
             console.error('Post load failed:', err);
             if (axios.isAxiosError(err) && err.response?.status === 404) {
-                setError('Post not found (404).');
+                if (!hasRedirected.current) {
+                    hasRedirected.current = true;
+                    toast.error('Post not found', 'This post does not exist or has been deleted');
+                    router.push('/home');
+                }
+                return;
             } else {
                 setError('Failed to load post details.');
             }
@@ -61,13 +112,15 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
         } finally {
             setLoadingPost(false);
         }
-    }, [postId]);
+    }, [postId, router]);
 
     useEffect(() => {
         const authToken = localStorage.getItem('token');
         setToken(authToken);
 
-        if (!authToken) {
+        if (!authToken && !hasRedirected.current) {
+            hasRedirected.current = true;
+            toast.info('Please log in to view posts and comments');
             router.push('/login');
             return;
         }
@@ -102,10 +155,23 @@ export default function PostPage({ params }: { params: Promise<{ postId: string 
         );
     }
 
+    const handlePostDeleted = () => {
+        router.push('/home')
+    }
+
+    const handlePostUpdated = () => {
+        loadPostData()
+    }
+
     return (
         <div className="page-container">
             <div className="card post-detail-card">
-                <HighlightedPost post={postData} />
+                <Post 
+                    post={postData} 
+                    onPostDeleted={handlePostDeleted}
+                    onPostUpdated={handlePostUpdated}
+                    highlighted
+                />
                 <PostCommentsSection
                     postId={postData.post_id}
                     comments={comments}

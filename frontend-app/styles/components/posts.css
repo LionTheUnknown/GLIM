@@ -7,13 +7,23 @@
 
 .post-list-item {
   display: block;
-  transition: transform 0.2s, opacity 0.2s;
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out, max-height 0.5s ease-out, margin 0.5s ease-out, padding 0.5s ease-out;
   text-decoration: none;
+  overflow: hidden;
 }
 
 .post-list-item:hover {
   transform: translateY(-2px);
   opacity: 0.9;
+}
+
+.post-list-item.post-expiring {
+  transform: translateX(100%);
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
 }
 
 .post-card {
@@ -25,28 +35,99 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
-.post-grid {
-  display: grid;
-  grid-template-columns: 1fr 3fr;
-  min-height: 100px;
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 0.25rem 1rem;
+  font-size: 0.75rem;
 }
 
-.post-author {
-  padding: 1rem;
-  border-right: 1px solid rgba(42, 42, 42, 0.5);
-  font-weight: 700;
-  color: white;
+.post-author-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(42, 42, 42, 0.8);
+  border: 2px solid rgba(42, 42, 42, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(26, 26, 26, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.post-author-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.post-author-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: white;
+}
+
+.post-header-separator {
+  color: var(--text-muted);
+}
+
+.post-category {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .post-content {
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.post-content-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  flex-direction: row;
+  padding: 0 1rem 0.5rem 1rem;
+}
+
+.post-text {
+  flex: 1;
   white-space: pre-wrap;
+  word-wrap: break-word;
+  width: 100%;
+}
+
+.post-divider {
+  display: none;
+}
+
+.post-flame-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  padding: 0.5rem;
+  width: 100%;
+}
+
+.post-pinned-badge {
+  background: rgba(255, 107, 53, 0.2);
+  border: 1px solid rgba(255, 107, 53, 0.5);
+  color: var(--accent);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 0.75rem;
 }
 
